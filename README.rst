@@ -190,3 +190,5 @@ For more information about these options, see the `Getting Help`_ page.
 .. |license-badge| image:: https://img.shields.io/github/license/openedx/course-discovery.svg
     :target: https://github.com/openedx/course-discovery/blob/master/LICENSE
     :alt: License
+
+
