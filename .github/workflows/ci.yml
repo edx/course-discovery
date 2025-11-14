@@ -2,7 +2,9 @@ name: CI
 
 on:
   pull_request:
-
+    branches: [ release-ulmo, master, 'feature/*' ]
+    push:
+      branches: [ release-ulmo, master, 'feature/*' ]
 jobs:
   pytest:
     runs-on: ubuntu-22.04
