@@ -1,4 +1,4 @@
-FROM ubuntu:focal as app
+FROM ubuntu:jammy as app
 
 ARG PYTHON_VERSION=3.12
 
@@ -9,15 +9,31 @@ ENV TZ=UTC
 RUN apt-get update && \
   apt-get install -y software-properties-common && \
   apt-add-repository -y ppa:deadsnakes/ppa && \
+  apt-get update && \
   apt-get install -qy \
   curl \
   gettext \
+  python3.12 \
+  python3.12-dev \
+  python3.12-venv \
+  python3-pip \
   # required by bower installer
   git \
   language-pack-en \
   build-essential \
-  libmysqlclient-dev \
   libssl-dev \
+  zlib1g-dev \
+  libbz2-dev \
+  libreadline-dev \
+  libsqlite3-dev \
+  libffi-dev  \
+  liblzma-dev \
+  libjpeg-dev \
+  libpng-dev \
+  libfreetype6-dev \
+  libssl-dev \
+  libmysqlclient-dev \
+  libcairo2-dev \
   # TODO: Current version of Pillow (9.5.0) doesn't provide pre-built wheel for python 3.12,
   # So this apt package is needed for building Pillow on 3.12,
   # and can be removed when version of Pillow is upgraded to 10.5.0+

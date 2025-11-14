@@ -44,7 +44,7 @@ pillow < 10.0.0
 # Awaiting fix https://github.com/Benoss/django-elasticsearch-debug-toolbar/pull/21 to be merged
 django-debug-toolbar < 4.2.0
 
-# selenium==4.13.0 causing test failures
+# selenium==4.13.0 causing test failure
 selenium==4.12.0
 
 # Open AI version 1.0.0 dropped support for openai.ChatCompletion which is currently in use in enterprise.
