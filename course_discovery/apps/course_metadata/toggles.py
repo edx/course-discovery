@@ -89,3 +89,26 @@ IS_COURSE_RUN_VARIANT_ID_ECOMMERCE_CONSUMABLE = WaffleSwitch(
 IS_COURSE_RUN_FOR_DUMMY_SKU_GENERATION = WaffleSwitch(
     'course_metadata.is_dummy_sku_generation', __name__
 )
+# .. toggle_name: enterprise.is_learners_tab_enabled
+# .. toggle_implementation: WaffleFlag
+# .. toggle_default: False
+# .. toggle_description: Enables the learners tab
+# .. toggle_use_cases: open_edx
+# .. toggle_creation_date: 2026-01-06
+IS_LEARNERS_TAB_ENABLED = WaffleFlag(
+    'course_metadata.is_learners_tab_enabled', __name__
+)
+
+def is_learners_tab_enabled():
+    """
+    Returns whether the learners tab feature flag is enabled.
+    """
+    return IS_LEARNERS_TAB_ENABLED.is_enabled()
+
+def enterprise_features():
+    """
+    Returns a dict of enterprise Waffle-based feature flags.
+    """
+    return {
+        'learners_tab': is_learners_tab_enabled(),
+    }
