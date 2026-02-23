@@ -80,7 +80,7 @@ social-auth-app-django
 unicodecsv
 python-slugify
 xss-utils
-taxonomy-connector
+-e git+https://github.com/ktyagiapphelix2u/taxonomy-connector.git@ktyagi/djchoice#egg=taxonomy-connector
 importlib-metadata
 snowflake-connector-python
 django-celery-results
