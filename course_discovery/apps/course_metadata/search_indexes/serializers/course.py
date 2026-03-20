@@ -158,12 +158,18 @@ class CourseSearchDocumentSerializer(ModelObjectDocumentSerializerMixin, DateTim
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         request = self.context['request']
-        detail_fields = request.GET.get('detail_fields')
+        detail_fields = request.query_params.get('detail_fields')
+        include_modified = request.query_params.get('include_modified', False)
+
         # if detail_fields query_param not in request than do not add the following fields in serializer response.
         if not detail_fields:
             self.fields.pop('level_type', None)
-            self.fields.pop('modified', None)
             self.fields.pop('outcome', None)
+
+        # allow the client to request only that the course modified field is included without
+        # including all the other fields dictated by detail_fields (notably, the expanded course run fiels)
+        if not include_modified:
+            self.fields.pop('modified', None)
 
     def to_representation(self, instance):
         """
