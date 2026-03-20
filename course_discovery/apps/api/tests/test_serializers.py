@@ -2414,7 +2414,7 @@ class CourseSearchDocumentSerializerTests(ElasticsearchTestMixin, TestCase, Cour
         if is_post_request:
             request = make_post_request({'detail_fields': True})
         else:
-            request = make_request({'detail_fields': True})
+            request = make_request({'detail_fields': 'true'})
         organization = OrganizationFactory()
         # 'organizations' in serialized data should not return duplicate organization names
         # Add the same organization twice to the course and make sure only one is in the serialized data
@@ -2510,6 +2510,18 @@ class CourseSearchDocumentSerializerTests(ElasticsearchTestMixin, TestCase, Cour
             del expected['modified']
         serializer = self.serialize_course(course, request)
         self.assertDictEqual(serializer.data, expected)
+
+    def test_include_modified_without_detail_fields(self):
+        """include_modified=true returns modified but not level_type or outcome."""
+        request = make_request({'include_modified': 'true'})
+        course = CourseFactory()
+        CourseRunFactory(course=course)
+        course.save()
+
+        data = self.serialize_course(course, request).data
+        assert 'modified' in data
+        assert 'level_type' not in data
+        assert 'outcome' not in data
 
     @classmethod
     def get_expected_data(cls, course, course_run, course_skill, seat):
