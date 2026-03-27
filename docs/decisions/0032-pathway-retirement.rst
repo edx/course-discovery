@@ -22,7 +22,7 @@ The **status** field will be exposed in the pathways endpoint, and the API will 
 
 Consequences
 --------------
-Consuming systems, such as credentials and edx-plaform, will have to ensure that they take the status field in consideration
+Consuming systems, such as credentials and edx-platform, will have to ensure that they take the status field in consideration
 while processing pathways. Specifically, credentials will need to ensure that it does not allow credit redemption requests
 against retired pathways, and edx-platform will need to exclude retired pathways from the programs section of the learner dashboard.
 
