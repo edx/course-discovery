@@ -50,7 +50,7 @@ class AccountSettingsReadOnlyFieldsStep(PipelineStep):
                 'enterprise_customer'
             ).get(user_id=user.id)
         except EnterpriseCustomerUser.DoesNotExist:
-            return {"readonly_fields": readonly_fields}
+            return {"readonly_fields": readonly_fields, "user": user}
 
         enterprise_customer = enterprise_customer_user.enterprise_customer
 
@@ -59,19 +59,19 @@ class AccountSettingsReadOnlyFieldsStep(PipelineStep):
                 enterprise_customer=enterprise_customer
             )
         except EnterpriseCustomerIdentityProvider.DoesNotExist:
-            return {"readonly_fields": readonly_fields}
+            return {"readonly_fields": readonly_fields, "user": user}
 
         try:
             if third_party_auth is None:
-                return {"readonly_fields": readonly_fields}
+                return {"readonly_fields": readonly_fields, "user": user}
             identity_provider = third_party_auth.provider.Registry.get(
                 provider_id=idp_record.provider_id
             )
         except Exception:  # pylint: disable=broad-except
-            return {"readonly_fields": readonly_fields}
+            return {"readonly_fields": readonly_fields, "user": user}
 
         if not identity_provider or not getattr(identity_provider, 'sync_learner_profile_data', False):
-            return {"readonly_fields": readonly_fields}
+            return {"readonly_fields": readonly_fields, "user": user}
 
         enterprise_readonly = set(getattr(settings, 'ENTERPRISE_READONLY_ACCOUNT_FIELDS', []))
 
@@ -85,4 +85,4 @@ class AccountSettingsReadOnlyFieldsStep(PipelineStep):
             if not has_social_auth:
                 enterprise_readonly = enterprise_readonly - {'name'}
 
-        return {"readonly_fields": readonly_fields | enterprise_readonly}
+        return {"readonly_fields": readonly_fields | enterprise_readonly, "user": user}
