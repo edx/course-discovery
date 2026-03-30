@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase, override_settings
 
 from enterprise.filters.accounts import AccountSettingsReadOnlyFieldsStep
-from enterprise.models import EnterpriseCustomerUser
+from enterprise.models import EnterpriseCustomerIdentityProvider, EnterpriseCustomerUser
 
 
 class TestAccountSettingsReadOnlyFieldsStep(TestCase):
@@ -33,8 +33,9 @@ class TestAccountSettingsReadOnlyFieldsStep(TestCase):
         mock_objects.select_related.return_value.get.side_effect = EnterpriseCustomerUser.DoesNotExist
         step = self._make_step()
         fields = set()
-        result = step.run_filter(readonly_fields=fields, user=self._mock_user())
-        self.assertEqual(result, {"readonly_fields": fields})
+        user = self._mock_user()
+        result = step.run_filter(readonly_fields=fields, user=user)
+        self.assertEqual(result, {"readonly_fields": fields, "user": user})
 
     @patch('enterprise.filters.accounts.UserSocialAuth')
     @patch('enterprise.filters.accounts.EnterpriseCustomerIdentityProvider.objects')
@@ -100,3 +101,59 @@ class TestAccountSettingsReadOnlyFieldsStep(TestCase):
 
         self.assertNotIn("name", result["readonly_fields"])
         self.assertIn("email", result["readonly_fields"])
+
+    @patch('enterprise.filters.accounts.EnterpriseCustomerIdentityProvider.objects')
+    @patch('enterprise.filters.accounts.EnterpriseCustomerUser.objects')
+    def test_returns_unchanged_readonly_fields_when_no_idp_record(
+        self, mock_ecu_objects, mock_idp_objects
+    ):
+        """
+        When the enterprise customer has no linked identity provider,
+        readonly_fields is returned unchanged.
+        """
+        user = self._mock_user()
+        mock_ecu_objects.select_related.return_value.get.return_value = MagicMock()
+        mock_idp_objects.get.side_effect = EnterpriseCustomerIdentityProvider.DoesNotExist
+        step = self._make_step()
+        fields = {'existing_field'}
+        result = step.run_filter(readonly_fields=fields, user=user)
+        self.assertEqual(result["readonly_fields"], fields)
+
+    @patch('enterprise.filters.accounts.EnterpriseCustomerIdentityProvider.objects')
+    @patch('enterprise.filters.accounts.EnterpriseCustomerUser.objects')
+    def test_returns_unchanged_readonly_fields_when_third_party_auth_unavailable(
+        self, mock_ecu_objects, mock_idp_objects
+    ):
+        """
+        When third_party_auth is not installed (None), readonly_fields is returned unchanged.
+        """
+        user = self._mock_user()
+        mock_ecu_objects.select_related.return_value.get.return_value = MagicMock()
+        mock_idp_objects.get.return_value = MagicMock(provider_id='saml-test')
+        step = self._make_step()
+        fields = {'existing_field'}
+        with patch('enterprise.filters.accounts.third_party_auth', None):
+            result = step.run_filter(readonly_fields=fields, user=user)
+        self.assertEqual(result["readonly_fields"], fields)
+
+    @patch('enterprise.filters.accounts.EnterpriseCustomerIdentityProvider.objects')
+    @patch('enterprise.filters.accounts.EnterpriseCustomerUser.objects')
+    def test_returns_unchanged_readonly_fields_when_sync_not_enabled(
+        self, mock_ecu_objects, mock_idp_objects
+    ):
+        """
+        When the identity provider exists but sync_learner_profile_data is False,
+        readonly_fields is returned unchanged.
+        """
+        user = self._mock_user()
+        mock_ecu_objects.select_related.return_value.get.return_value = MagicMock()
+        mock_idp_objects.get.return_value = MagicMock(provider_id='saml-test')
+        mock_identity_provider = MagicMock()
+        mock_identity_provider.sync_learner_profile_data = False
+        mock_tpa = MagicMock()
+        mock_tpa.provider.Registry.get.return_value = mock_identity_provider
+        step = self._make_step()
+        fields = {'existing_field'}
+        with patch('enterprise.filters.accounts.third_party_auth', mock_tpa):
+            result = step.run_filter(readonly_fields=fields, user=user)
+        self.assertEqual(result["readonly_fields"], fields)
