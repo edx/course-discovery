@@ -1,0 +1,28 @@
+course_discovery/static/js/sortable_select.js
+  dda5a70ed263c59f 1-11,13-17,19-21,23-32,36-38,41-47,50-51
+course_discovery/static/js/jquery_shim.js
+  dda5a70ed263c59f 1-5
+course_discovery/apps/course_metadata/admin.py
+  dda5a70ed263c59f 238,589,1083
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "3114e629dd3965451e57da3035a865e4660ebe5d",
+  "prompts": {
+    "dda5a70ed263c59f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "07249ed7-737d-42a6-9e92-c5d2338caf0c",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Alexander Dusenbery",
+      "messages": [],
+      "total_additions": 52,
+      "total_deletions": 44,
+      "accepted_lines": 49,
+      "overriden_lines": 0,
+      "messages_url": "https://usegitai.com/cas/c2420ffe530b1b58c451a19219fd4958ed3da6eaee71397157332595f397d594"
+    }
+  }
+}
