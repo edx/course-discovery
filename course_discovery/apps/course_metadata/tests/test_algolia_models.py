@@ -350,6 +350,39 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
 
         assert course.availability_level == []
 
+    def test_earliest_course_run_start_none_when_no_runs(self):
+        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
+        assert course.earliest_course_run_start is None
+
+    def test_earliest_course_run_start_none_when_all_runs_lack_start(self):
+        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
+        CourseRunFactory(course=course, start=None, status=CourseRunStatus.Published)
+        assert course.earliest_course_run_start is None
+
+    def test_earliest_course_run_start_returns_min_as_epoch_int(self):
+        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
+        # Multiple runs: the earliest should win regardless of which is "active".
+        earliest = datetime.datetime.now(UTC) - datetime.timedelta(days=500)
+        CourseRunFactory(course=course, start=earliest, status=CourseRunStatus.Published)
+        CourseRunFactory(course=course, start=self.YESTERDAY, status=CourseRunStatus.Published)
+        CourseRunFactory(course=course, start=self.TOMORROW, status=CourseRunStatus.Published)
+
+        result = course.earliest_course_run_start
+        assert isinstance(result, int)
+        assert result == int(earliest.timestamp())
+
+    def test_earliest_course_run_start_ignores_unpublished_runs(self):
+        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
+        # An old unpublished draft must NOT drag the "first released" date
+        # backwards — only published runs count toward "earliest start".
+        old_unpublished = datetime.datetime.now(UTC) - datetime.timedelta(days=1000)
+        recent_published = datetime.datetime.now(UTC) - datetime.timedelta(days=30)
+        CourseRunFactory(course=course, start=old_unpublished, status=CourseRunStatus.Unpublished)
+        CourseRunFactory(course=course, start=recent_published, status=CourseRunStatus.Published)
+
+        result = course.earliest_course_run_start
+        assert result == int(recent_published.timestamp())
+
     def test_spanish_courses_promoted_in_spanish_index(self):
         colombian_spanish = LanguageTag.objects.get(code='es-co')
         american_english = LanguageTag.objects.get(code='en-us')

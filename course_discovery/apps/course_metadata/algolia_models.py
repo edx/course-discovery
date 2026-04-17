@@ -93,7 +93,7 @@ def delegate_attributes(cls):
                      'product_organization_short_code_override', 'product_organization_logo_override', 'skills',
                      'product_meta_title', 'product_display_on_org_page', 'product_external_url',
                      'contentful_fields', 'subscription_eligible', 'subscription_prices', 'product_key',
-                     'product_marketing_video_url', ]
+                     'product_marketing_video_url', 'earliest_course_run_start', ]
     object_id_field = ['custom_object_id', ]
     fields = product_type_fields + search_fields + facet_fields + ranking_fields + result_fields + object_id_field
     for field in fields:
@@ -287,6 +287,20 @@ class AlgoliaProxyCourse(Course, AlgoliaBasicModelFieldsMixin):
     @property
     def active_run_start(self):
         return getattr(self.advertised_course_run, 'start', None)
+
+    @property
+    def earliest_course_run_start(self):
+        # Epoch seconds of the earliest start across PUBLISHED course runs.
+        # Used by the "New content" filter (last-12-months window).
+        # Unpublished/draft runs are excluded to match get_course_availability
+        # and prevent backfilled drafts from skewing the "first released" date.
+        starts = [
+            r.start for r in self.course_runs.all()
+            if r.start and r.status == CourseRunStatus.Published
+        ]
+        if not starts:
+            return None
+        return int(min(starts).timestamp())
 
     @property
     def active_run_type(self):

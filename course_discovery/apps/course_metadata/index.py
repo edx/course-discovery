@@ -95,7 +95,8 @@ class EnglishProductIndex(BaseProductIndex):
                      ('product_meta_title', 'meta_title'), ('product_display_on_org_page', 'display_on_org_page'),
                      ('product_external_url', 'external_url'), 'active_run_key',
                      'active_run_start', 'active_run_type', 'owners', 'course_titles', 'tags',
-                     'skills', 'contentful_fields', 'product_key', 'product_marketing_video_url', )
+                     'skills', 'contentful_fields', 'product_key', 'product_marketing_video_url',
+                     'earliest_course_run_start', )
 
     # Algolia needs this
     object_id_field = (('custom_object_id', 'objectID'), )
@@ -119,6 +120,7 @@ class EnglishProductIndex(BaseProductIndex):
             'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible', 'subscription_prices',
             'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
             'ai_languages.transcription_languages',
+            'filterOnly(earliest_course_run_start)',
         ],
         'customRanking': ['asc(availability_rank)', 'desc(recent_enrollment_count)']
     }
@@ -151,7 +153,8 @@ class SpanishProductIndex(BaseProductIndex):
                      ('product_meta_title', 'meta_title'), ('product_display_on_org_page', 'display_on_org_page'),
                      ('product_external_url', 'external_url'), 'active_run_start',
                      'active_run_type', 'owners', 'course_titles', 'tags', 'skills',
-                     'contentful_fields', 'product_key', 'product_marketing_video_url', )
+                     'contentful_fields', 'product_key', 'product_marketing_video_url',
+                     'earliest_course_run_start', )
 
     # Algolia uses objectID as unique identifier. Can't use straight uuids because a program and a course could
     # have the same one, so we add 'course' or 'program' as a prefix
@@ -176,6 +179,7 @@ class SpanishProductIndex(BaseProductIndex):
             'skills.skill', 'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible',
             'subscription_prices', 'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
             'ai_languages.transcription_languages',
+            'filterOnly(earliest_course_run_start)',
         ],
         'customRanking': ['desc(promoted_in_spanish_index)', 'asc(availability_rank)', 'desc(recent_enrollment_count)']
     }
