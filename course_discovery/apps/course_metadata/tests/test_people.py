@@ -148,6 +148,57 @@ class MarketingSitePublisherTests(MarketingSitePublisherTestMixin):
         })
         self.assertDictEqual(data, expected)
 
+    def test_person_without_family_name(self):
+        person = PersonFactory(
+            partner=self.partner,
+            given_name='User',
+            family_name=None
+        )
+
+        people = MarketingSitePeople()
+        data = people._get_node_data(person)  # pylint: disable=protected-access
+
+        assert data['title'] == 'User'
+
+    def test_person_without_family_name_with_salutation(self):
+        person = PersonFactory(
+            partner=self.partner,
+            salutation='Dr.',
+            given_name='User',
+            family_name=None
+        )
+
+        people = MarketingSitePeople()
+        data = people._get_node_data(person)  # pylint: disable=protected-access
+
+        assert data['title'] == 'Dr. User'
+
+    def test_person_with_salutation_and_full_name(self):
+        person = PersonFactory(
+            partner=self.partner,
+            salutation='Dr.',
+            given_name='User',
+            family_name='Smith'
+        )
+
+        people = MarketingSitePeople()
+        data = people._get_node_data(person)  # pylint: disable=protected-access
+
+        assert data['title'] == 'Dr. User Smith'
+
+    def test_person_with_only_salutation(self):
+        person = PersonFactory(
+            partner=self.partner,
+            salutation='Dr.',
+            given_name='',
+            family_name=''
+        )
+
+        people = MarketingSitePeople()
+        data = people._get_node_data(person)  # pylint: disable=protected-access
+
+        assert data['title'] == ''
+
     @responses.activate
     def test_person_create_failed(self):
         self.mock_api_client(200)

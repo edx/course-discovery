@@ -19,9 +19,19 @@ class MarketingSitePeople:
         )
 
     def _get_node_data(self, person):
+        # Build name safely ignoring empty values
+        name_parts = [
+            part for part in [person.given_name, person.family_name]
+            if part
+        ]
+        full_name = " ".join(name_parts)
+        # Add salutation only when a name exists
+        if full_name and person.salutation:
+            full_name = f"{person.salutation} {full_name}"
+
         return {
             'field_person_slug': person.slug,
-            'title': person.full_name,
+            'title': full_name.strip(),
             'type': 'person',
             'status': 1 if person.published else 0
         }
