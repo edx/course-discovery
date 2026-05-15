@@ -461,6 +461,8 @@ def send_course_deadline_email(course, course_run, recipients, deadline_email_va
     }
 
     subject = subject_lookup.get(deadline_email_variant, f"Reminder: {course.title} deadline is approaching")
+    org = course.authoring_organizations.first()
+    project_coordinators = get_project_coordinators(org)
 
     context = {
         "course_uuid": course.uuid,
@@ -475,8 +477,14 @@ def send_course_deadline_email(course, course_run, recipients, deadline_email_va
             else "course_ended"
         ),
         "publisher_url": course.partner.publisher_url,
-        "course_schedule_settings_url": f"{course.partner.studio_url}/settings/details/{course_run.key}#schedule",
+        "course_schedule_settings_url": (
+            f"{course.partner.studio_url.rstrip('/')}"
+            f"/settings/details/{course_run.key}#schedule"
+        ),
         "partner_marketing_site_url": course.partner.marketing_site_url_root,
+        "contact_us_emails": [
+            project_coordinator.email for project_coordinator in project_coordinators
+        ] if project_coordinators else [],
     }
     html_content = template.render(context)
     email = EmailMessage(
