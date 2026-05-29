@@ -2020,7 +2020,7 @@ msgstr "\n        edX revisó de manera existosa el curso '%(course_name)s' y ya
 msgid ""
 "\n"
 "    Course '%(course_name)s' has been successfully reviewed by edX and is now published on %(course_publish_date)s. To see live course, go here: %(course_marketing_url)s\n"
-msgstr "El curso &#39; <span class='notranslate'>%(course_name)s</span> &#39; ha sido revisado con éxito por edX y ahora está publicado en <span class='notranslate'>%(course_publish_date)s</span> . Para ver el curso en vivo, vaya aquí: <span class='notranslate'>%(course_marketing_url)s</span>"
+msgstr "\n    El curso &#39; <span class='notranslate'>%(course_name)s</span> &#39; ha sido revisado con éxito por edX y ahora está publicado en <span class='notranslate'>%(course_publish_date)s</span> . Para ver el curso en vivo, vaya aquí: <span class='notranslate'>%(course_marketing_url)s</span>\n"
 
 #: apps/course_metadata/templates/course_metadata/email/watchers_course_url.txt:8
 #, python-format
