@@ -3,6 +3,7 @@ Unit tests for Course Loader.
 """
 import copy
 import datetime
+import re
 from tempfile import NamedTemporaryFile
 from unittest import mock
 
@@ -22,7 +23,7 @@ from course_discovery.apps.course_metadata.data_loaders.tests.mixins import CSVL
 from course_discovery.apps.course_metadata.data_loaders.tests.test_utils import MockExceptionWithResponse
 from course_discovery.apps.course_metadata.models import Course, CourseRun, CourseRunType, CourseType
 from course_discovery.apps.course_metadata.tests.factories import (
-    CourseFactory, CourseRunFactory, CourseTypeFactory, SourceFactory
+    CourseFactory, CourseRunFactory, CourseTypeFactory, PersonFactory, SourceFactory
 )
 from course_discovery.apps.course_metadata.toggles import IS_SUBDIRECTORY_SLUG_FORMAT_ENABLED
 
@@ -162,6 +163,163 @@ class TestCourseLoader(CSVLoaderMixin, OAuth2Mixin, APITestCase):
                         course=course,
                     )
                     self.assertEqual(course_run.status, CourseRunStatus.Unpublished)
+
+    def test_course_loader_ingest_for_course_creation_with_staff(self, _mock_jwt_decode_handler):
+        """
+        Test Course Loader assigns course run staff from csv UUIDs.
+        """
+        self._setup_prerequisites(self.partner)
+        self.mock_ecommerce_publication(self.partner)
+
+        staff_1 = PersonFactory(partner=self.partner)
+        staff_2 = PersonFactory(partner=self.partner)
+
+        csv_data = {
+            **mock_data.VALID_COURSE_LOADER_COURSE_AND_COURSE_RUN_CREATION_CSV_DICT,
+            'Staff': f'{staff_1.uuid}, {staff_2.uuid}',
+        }
+
+        with NamedTemporaryFile() as csv:
+            csv = self._write_csv(
+                csv, [csv_data],
+                headers=csv_data.keys()
+            )
+            # Mock studio calls - register base endpoint and use regex to match any course run key
+            studio_url = f'{self.partner.studio_url.strip("/")}/api/v1/course_runs/'
+            responses.add(responses.POST, studio_url, status=200)
+            # Match any PATCH to course run endpoint with pattern course-v1:org+number+run
+            responses.add(
+                responses.PATCH,
+                re.compile(r'.*/api/v1/course_runs/course-v1:[^/]+\+[^/]+\+[^/]+/'),
+                status=200,
+                json={}
+            )
+
+            with mock.patch.object(
+                    CourseLoader,
+                    'call_course_api',
+                    self.mock_call_course_api
+            ):
+                with mock.patch.object(
+                        CourseLoader,
+                        'download_course_image_assets',
+                        return_value=(True, True)
+                ):
+                    loader = CourseLoader(
+                        self.partner, csv_path=csv.name,
+                        product_source=self.source.slug,
+                        task_type=BulkOperationType.CourseCreate
+                    )
+                    loader.ingest()
+
+        course = Course.everything.get(key=f"{csv_data['Organization']}+{csv_data['Number']}")
+        course_run = CourseRun.everything.get(course=course)
+
+        self.assertEqual(loader.ingestion_summary['success_count'], 1)
+        self.assertSetEqual(
+            {str(person.uuid) for person in course_run.staff.all()},
+            {str(staff_1.uuid), str(staff_2.uuid)}
+        )
+
+    def test_course_loader_ingest_for_course_creation_with_invalid_staff(self, _mock_jwt_decode_handler):
+        """
+        Test Course Loader records an ingestion failure when staff UUID is invalid.
+        """
+        self._setup_prerequisites(self.partner)
+        self.mock_ecommerce_publication(self.partner)
+
+        csv_data = {
+            **mock_data.VALID_COURSE_LOADER_COURSE_AND_COURSE_RUN_CREATION_CSV_DICT,
+            'Staff': '00000000-0000-0000-0000-000000000000',
+        }
+
+        with NamedTemporaryFile() as csv:
+            csv = self._write_csv(
+                csv, [csv_data],
+                headers=csv_data.keys()
+            )
+            # Mock studio calls to accept any course run key
+            studio_url = f'{self.partner.studio_url.strip("/")}/api/v1/course_runs/'
+            responses.add(responses.POST, studio_url, status=200)
+            responses.add(
+                responses.PATCH,
+                re.compile(r'.*/api/v1/course_runs/course-v1:[^/]+\+[^/]+\+[^/]+/'),
+                status=200,
+                json={}
+            )
+
+            with mock.patch.object(
+                    CourseLoader,
+                    'call_course_api',
+                    self.mock_call_course_api
+            ):
+                with mock.patch.object(
+                        CourseLoader,
+                        'download_course_image_assets',
+                        return_value=(True, True)
+                ):
+                    loader = CourseLoader(
+                        self.partner, csv_path=csv.name,
+                        product_source=self.source.slug,
+                        task_type=BulkOperationType.CourseCreate
+                    )
+                    summary = loader.ingest()
+
+        self.assertEqual(loader.ingestion_summary['success_count'], 0)
+        self.assertEqual(loader.ingestion_summary['failure_count'], 1)
+        self.assertEqual(loader.ingestion_summary['created_products'], [])
+        self.assertTrue(summary['errors'][CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR])
+        self.assertIn(
+            'Instructor with UUID 00000000-0000-0000-0000-000000000000 not found',
+            summary['errors'][CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR][0]
+        )
+
+    def test_course_loader_ingest_for_partial_update_with_staff(self, _mock_jwt_decode_handler):
+        """
+        Test Course Loader updates course run staff from csv UUIDs in partial update flow.
+        """
+        self.create_new_course()
+
+        staff_1 = PersonFactory(partner=self.partner)
+        staff_2 = PersonFactory(partner=self.partner)
+
+        csv_data = {
+            **mock_data.COURSE_LOADER_COURSE_AND_COURSE_RUN_PARTIAL_UPDATES_SIMPLE,
+            'Staff': f'{staff_1.uuid}, {staff_2.uuid}',
+        }
+
+        loader, _ = self.perform_partial_updates(csv_data)
+
+        course_run = CourseRun.everything.get(key=csv_data['Course Run Key'])
+        self.assertEqual(loader.ingestion_summary['success_count'], 1)
+        self.assertSetEqual(
+            {str(person.uuid) for person in course_run.staff.all()},
+            {str(staff_1.uuid), str(staff_2.uuid)}
+        )
+
+    def test_course_loader_ingest_for_partial_update_with_invalid_staff(self, _mock_jwt_decode_handler):
+        """
+        Test Course Loader records an ingestion failure when partial update has invalid staff UUID.
+        """
+        self.create_new_course()
+
+        csv_data = {
+            **mock_data.COURSE_LOADER_COURSE_AND_COURSE_RUN_PARTIAL_UPDATES_SIMPLE,
+            'Staff': '00000000-0000-0000-0000-000000000000',
+        }
+
+        loader, _ = self.perform_partial_updates(csv_data)
+
+        course_run = CourseRun.everything.get(key=csv_data['Course Run Key'])
+
+        self.assertEqual(loader.ingestion_summary['success_count'], 0)
+        self.assertEqual(loader.ingestion_summary['failure_count'], 1)
+        self.assertTrue(loader.error_logs[CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR])
+        self.assertIn(
+            'Instructor with UUID 00000000-0000-0000-0000-000000000000 not found',
+            loader.error_logs[CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR][0]
+        )
+        self.assertFalse(course_run.staff.exists())
 
     @data([True, True, True], [True, False, False], [False, True, True], [False, False, True])
     @unpack
