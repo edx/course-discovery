@@ -1053,7 +1053,7 @@ stevedore==5.7.0
     #   code-annotations
     #   edx-django-utils
     #   edx-opaque-keys
-taxonomy-connector==2.4.0
+taxonomy-connector==3.0.0
     # via -r requirements/test.txt
 testfixtures==11.0.0
     # via -r requirements/test.txt
