@@ -5,6 +5,7 @@ course and course run data for the specified course type.
 """
 import csv
 import logging
+import uuid
 
 import unicodecsv
 
@@ -282,20 +283,30 @@ class CourseLoader(AbstractDataLoader, DataLoaderMixin):
         if not staff_data:
             return []
 
+        normalized_staff_uuids = []
         seen = set()
-        valid_staff_uuids = []
-        for staff_uuid in [value.strip() for value in staff_data.split(',') if value.strip()]:
-            if staff_uuid in seen:
+        for raw_value in [value.strip() for value in staff_data.split(',') if value.strip()]:
+            try:
+                normalized_uuid = str(uuid.UUID(raw_value))
+            except ValueError as exc:
+                raise ValueError(f"Invalid staff UUID format: '{raw_value}'") from exc
+
+            if normalized_uuid in seen:
                 continue
 
-            person = Person.objects.filter(uuid=staff_uuid, partner=self.partner).first()
-            if not person:
-                raise Exception(f"Instructor with UUID {staff_uuid} not found")
+            seen.add(normalized_uuid)
+            normalized_staff_uuids.append(normalized_uuid)
 
-            seen.add(staff_uuid)
-            valid_staff_uuids.append(str(person.uuid))
+        matched_staff_uuids = {
+            str(person.uuid)
+            for person in Person.objects.filter(partner=self.partner, uuid__in=normalized_staff_uuids)
+        }
 
-        return valid_staff_uuids
+        for staff_uuid in normalized_staff_uuids:
+            if staff_uuid not in matched_staff_uuids:
+                raise ValueError(f"Staff member with UUID {staff_uuid} not found for this partner")
+
+        return normalized_staff_uuids
 
     def download_course_image_assets(self, data, course):
         """

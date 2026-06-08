@@ -270,7 +270,59 @@ class TestCourseLoader(CSVLoaderMixin, OAuth2Mixin, APITestCase):
         self.assertEqual(loader.ingestion_summary['created_products'], [])
         self.assertTrue(summary['errors'][CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR])
         self.assertIn(
-            'Instructor with UUID 00000000-0000-0000-0000-000000000000 not found',
+            'Staff member with UUID 00000000-0000-0000-0000-000000000000 not found for this partner',
+            summary['errors'][CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR][0]
+        )
+
+    def test_course_loader_ingest_for_course_creation_with_malformed_staff_uuid(self, _mock_jwt_decode_handler):
+        """
+        Test Course Loader records an ingestion failure when staff UUID format is malformed.
+        """
+        self._setup_prerequisites(self.partner)
+        self.mock_ecommerce_publication(self.partner)
+
+        csv_data = {
+            **mock_data.VALID_COURSE_LOADER_COURSE_AND_COURSE_RUN_CREATION_CSV_DICT,
+            'Staff': 'not-a-uuid',
+        }
+
+        with NamedTemporaryFile() as csv:
+            csv = self._write_csv(
+                csv, [csv_data],
+                headers=csv_data.keys()
+            )
+            studio_url = f'{self.partner.studio_url.strip("/")}/api/v1/course_runs/'
+            responses.add(responses.POST, studio_url, status=200)
+            responses.add(
+                responses.PATCH,
+                re.compile(r'.*/api/v1/course_runs/course-v1:[^/]+\+[^/]+\+[^/]+/'),
+                status=200,
+                json={}
+            )
+
+            with mock.patch.object(
+                    CourseLoader,
+                    'call_course_api',
+                    self.mock_call_course_api
+            ):
+                with mock.patch.object(
+                        CourseLoader,
+                        'download_course_image_assets',
+                        return_value=(True, True)
+                ):
+                    loader = CourseLoader(
+                        self.partner, csv_path=csv.name,
+                        product_source=self.source.slug,
+                        task_type=BulkOperationType.CourseCreate
+                    )
+                    summary = loader.ingest()
+
+        self.assertEqual(loader.ingestion_summary['success_count'], 0)
+        self.assertEqual(loader.ingestion_summary['failure_count'], 1)
+        self.assertEqual(loader.ingestion_summary['created_products'], [])
+        self.assertTrue(summary['errors'][CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR])
+        self.assertIn(
+            "Invalid staff UUID format: 'not-a-uuid'",
             summary['errors'][CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR][0]
         )
 
@@ -316,7 +368,7 @@ class TestCourseLoader(CSVLoaderMixin, OAuth2Mixin, APITestCase):
         self.assertEqual(loader.ingestion_summary['failure_count'], 1)
         self.assertTrue(loader.error_logs[CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR])
         self.assertIn(
-            'Instructor with UUID 00000000-0000-0000-0000-000000000000 not found',
+            'Staff member with UUID 00000000-0000-0000-0000-000000000000 not found for this partner',
             loader.error_logs[CSVIngestionErrors.COURSE_RUN_UPDATE_ERROR][0]
         )
         self.assertFalse(course_run.staff.exists())
