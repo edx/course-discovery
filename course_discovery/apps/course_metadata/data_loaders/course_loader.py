@@ -5,6 +5,7 @@ course and course run data for the specified course type.
 """
 import csv
 import logging
+import uuid
 
 import unicodecsv
 
@@ -15,7 +16,7 @@ from course_discovery.apps.course_metadata.data_loaders.constants import (
 )
 from course_discovery.apps.course_metadata.data_loaders.mixins import DataLoaderMixin
 from course_discovery.apps.course_metadata.data_loaders.utils import prune_empty_values
-from course_discovery.apps.course_metadata.models import Course, CourseRun, CourseRunType
+from course_discovery.apps.course_metadata.models import Course, CourseRun, CourseRunType, Person
 from course_discovery.apps.course_metadata.utils import download_and_save_course_image
 
 logger = logging.getLogger(__name__)
@@ -227,6 +228,7 @@ class CourseLoader(AbstractDataLoader, DataLoaderMixin):
             return None
 
         program_type = course_run_data.get('expected_program_type')
+        staff_uuids = self.process_staff_uuids(course_run_data.get('staff', ''))
         content_language = self.verify_and_get_language_tags(course_run_data.get('content_language') or 'en-us')
         transcript_language = self.verify_and_get_language_tags(course_run_data.get('transcript_languages') or 'en-us')
 
@@ -238,6 +240,7 @@ class CourseLoader(AbstractDataLoader, DataLoaderMixin):
             'prices': self.get_pricing_representation(
                 course_run_data.get('verified_price'), course_type or course_run.course.type
             ),
+            'staff': staff_uuids,
             'draft': is_draft,
             'content_language': content_language[0],
             'expected_program_name': course_run_data.get('expected_program_name', ''),
@@ -272,6 +275,38 @@ class CourseLoader(AbstractDataLoader, DataLoaderMixin):
             prune_empty_values(update_course_run_data)
 
         return update_course_run_data
+
+    def process_staff_uuids(self, staff_data):
+        """
+        Validate and normalize comma-separated staff UUIDs from csv.
+        """
+        if not staff_data:
+            return []
+
+        normalized_staff_uuids = []
+        seen = set()
+        for raw_value in [value.strip() for value in staff_data.split(',') if value.strip()]:
+            try:
+                normalized_uuid = str(uuid.UUID(raw_value))
+            except ValueError as exc:
+                raise ValueError(f"Invalid staff UUID format: '{raw_value}'") from exc
+
+            if normalized_uuid in seen:
+                continue
+
+            seen.add(normalized_uuid)
+            normalized_staff_uuids.append(normalized_uuid)
+
+        matched_staff_uuids = {
+            str(person.uuid)
+            for person in Person.objects.filter(partner=self.partner, uuid__in=normalized_staff_uuids)
+        }
+
+        for staff_uuid in normalized_staff_uuids:
+            if staff_uuid not in matched_staff_uuids:
+                raise ValueError(f"Staff member with UUID {staff_uuid} not found for this partner")
+
+        return normalized_staff_uuids
 
     def download_course_image_assets(self, data, course):
         """
