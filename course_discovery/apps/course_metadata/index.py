@@ -68,7 +68,8 @@ class BaseProductIndex(AlgoliaIndex):
         ]
         final_rules = rules_to_create + existing_rules_to_keep
         super().reindex_all(batch_size)
-        self._AlgoliaIndex__index.replace_all_rules(final_rules)
+        if final_rules:
+            self._AlgoliaIndex__index.replace_all_rules(final_rules)
 
 
 class EnglishProductIndex(BaseProductIndex):
