@@ -389,6 +389,7 @@ class CourseFactory(SalesforceRecordFactory):
     learner_testimonials = FuzzyText()
     type = factory.SubFactory(CourseTypeFactory)
     enterprise_subscription_inclusion = False
+    b2c_subscription_inclusion = False
     geolocation = factory.SubFactory(GeoLocationFactory)
     location_restriction = factory.SubFactory(CourseLocationRestrictionFactory)
     in_year_value = factory.SubFactory(ProductValueFactory)
@@ -683,6 +684,7 @@ class ProgramBaseFactory(factory.django.DjangoModelFactory):
     credit_redemption_overview = FuzzyText()
     order_courses_by_start_date = True
     enterprise_subscription_inclusion = False
+    b2c_subscription_inclusion = False
     hidden = False
     organization_short_code_override = FuzzyText()
     organization_logo_override = FuzzyText(suffix=".png")

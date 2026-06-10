@@ -1564,6 +1564,11 @@ class Course(ManageHistoryMixin, DraftModelMixin, PkSearchableMixin, CachedMixin
         help_text=_('This field signifies if this course is in the enterprise subscription catalog'),
     )
 
+    b2c_subscription_inclusion = models.BooleanField(
+        default=False,
+        help_text=_('This field signifies if this course is in the B2C subscription catalog'),
+    )
+
     excluded_from_search = models.BooleanField(
         null=True,
         blank=True,
@@ -3477,6 +3482,10 @@ class Program(ManageHistoryMixin, PkSearchableMixin, TimeStampedModel):
         default=False,
         help_text=_('This calculated field signifies if all the courses in '
                     'this program are included in the enterprise subscription catalog '),
+    )
+    b2c_subscription_inclusion = models.BooleanField(
+        default=False,
+        help_text=_('This field signifies if this program is in the B2C subscription catalog'),
     )
     organization_short_code_override = models.CharField(max_length=255, blank=True, help_text=_(
         'A field to override Organization short code alias specific for this program.')
