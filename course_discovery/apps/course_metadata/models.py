@@ -1559,6 +1559,11 @@ class Course(ManageHistoryMixin, DraftModelMixin, PkSearchableMixin, CachedMixin
         default=None, null=True, blank=True, help_text=_('The last time this course was modified in the database.')
     )
 
+    b2c_subscription_inclusion = models.BooleanField(
+        default=False,
+        help_text=_('This field signifie if this course is in the B2C subscription catalog'),
+    )
+
     enterprise_subscription_inclusion = models.BooleanField(
         null=True,
         help_text=_('This field signifies if this course is in the enterprise subscription catalog'),
