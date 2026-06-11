@@ -35,11 +35,11 @@ class AlgoliaProxyProgramFactory(ProgramFactory):
 
     subscription = factory.RelatedFactory(
         ProgramSubscriptionFactory,
-        factory_related_name='program',
+        factory_related_name="program",
     )
 
 
-class TestAlgoliaDataMixin():
+class TestAlgoliaDataMixin:
     ONE_MONTH_AGO = datetime.datetime.now(UTC) - datetime.timedelta(days=30)
     YESTERDAY = datetime.datetime.now(UTC) - datetime.timedelta(days=1)
     TOMORROW = datetime.datetime.now(UTC) + datetime.timedelta(days=1)
@@ -61,7 +61,7 @@ class TestAlgoliaDataMixin():
             course_run=current_upgradeable_course_run,
             type=SeatTypeFactory.verified(),
             upgrade_deadline=self.TOMORROW,
-            price=10
+            price=10,
         )
         return course
 
@@ -80,7 +80,7 @@ class TestAlgoliaDataMixin():
             course_run=upgradeable_course_run,
             type=SeatTypeFactory.verified(),
             upgrade_deadline=self.TOMORROW,
-            price=10
+            price=10,
         )
         return course
 
@@ -99,7 +99,7 @@ class TestAlgoliaDataMixin():
             course_run=upgradeable_course_run,
             type=SeatTypeFactory.verified(),
             upgrade_deadline=self.IN_FIFTEEN_DAYS,
-            price=10
+            price=10,
         )
         return course
 
@@ -119,7 +119,7 @@ class TestAlgoliaDataMixin():
             course_run=non_upgradeable_course_run,
             type=SeatTypeFactory.verified(),
             upgrade_deadline=self.YESTERDAY,
-            price=10
+            price=10,
         )
         return course
 
@@ -137,7 +137,7 @@ class TestAlgoliaDataMixin():
             course_run=future_course_run,
             type=SeatTypeFactory.verified(),
             upgrade_deadline=self.YESTERDAY,
-            price=10
+            price=10,
         )
         return course
 
@@ -158,8 +158,10 @@ class TestAlgoliaDataMixin():
         return course
 
     def create_blocked_course(self, status=CourseRunStatus.Published, **kwargs):
-        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner,
-                                           product_source=SourceFactory(slug='blocked'))
+        course = AlgoliaProxyCourseFactory(
+            partner=self.__class__.edxPartner,
+            product_source=SourceFactory(slug="blocked"),
+        )
 
         course_run = CourseRunFactory(
             course=course,
@@ -175,17 +177,17 @@ class TestAlgoliaDataMixin():
         return course
 
     def attach_published_course_run(self, course, run_type="archived", **kwargs):
-        course_start = course_end = ''
-        if run_type == 'current and ends within two weeks':
+        course_start = course_end = ""
+        if run_type == "current and ends within two weeks":
             course_start = self.ONE_MONTH_AGO
             course_end = self.TOMORROW
-        elif run_type == 'current and ends after two weeks':
+        elif run_type == "current and ends after two weeks":
             course_start = self.ONE_MONTH_AGO
             course_end = self.IN_TWO_MONTHS
-        elif run_type == 'upcoming':
+        elif run_type == "upcoming":
             course_start = self.TOMORROW
             course_end = self.IN_TWO_MONTHS
-        elif run_type == 'archived':
+        elif run_type == "archived":
             course_start = self.ONE_MONTH_AGO
             course_end = self.YESTERDAY
 
@@ -198,7 +200,7 @@ class TestAlgoliaDataMixin():
         )
 
 
-@override_settings(SETTING_DICT=ChainMap({'AUTO_INDEXING': 'False'}, settings.ALGOLIA))
+@override_settings(SETTING_DICT=ChainMap({"AUTO_INDEXING": "False"}, settings.ALGOLIA))
 class TestAlgoliaProxyWithEdxPartner(TestCase, TestAlgoliaDataMixin):
     @classmethod
     def setUpClass(cls):
@@ -206,8 +208,8 @@ class TestAlgoliaProxyWithEdxPartner(TestCase, TestAlgoliaDataMixin):
         Partner.objects.all().delete()
         Site.objects.all().delete()
         cls.site = SiteFactory(id=settings.SITE_ID, domain=TEST_DOMAIN)
-        cls.edxPartner = PartnerFactory(site=cls.site, name='edX')
-        cls.edxPartner.name = 'edX'
+        cls.edxPartner = PartnerFactory(site=cls.site, name="edX")
+        cls.edxPartner.name = "edX"
 
 
 @ddt.ddt
@@ -226,7 +228,10 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         """
         course = self.create_course_with_basic_active_course_run()
         course.authoring_organizations.add(OrganizationFactory())
-        RestrictedCourseRunFactory(course_run=course.course_runs.first(), restriction_type="custom-b2b-enterprise")
+        RestrictedCourseRunFactory(
+            course_run=course.course_runs.first(),
+            restriction_type="custom-b2b-enterprise",
+        )
         qs = AlgoliaProxyCourse.prefetch_queryset()
         assert not qs.first().should_index
 
@@ -275,14 +280,14 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
             end=self.IN_FIFTEEN_DAYS,
             enrollment_end=self.IN_FIFTEEN_DAYS,
             status=CourseRunStatus.Published,
-            hidden=True
+            hidden=True,
         )
         # not upgradeable because upgrade_deadline has passed
         SeatFactory(
             course_run=non_upgradeable_course_run,
             type=SeatTypeFactory.verified(),
             upgrade_deadline=self.YESTERDAY,
-            price=10
+            price=10,
         )
         assert course.should_index
 
@@ -317,7 +322,7 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
             start=self.YESTERDAY,
             end=self.YESTERDAY,
             enrollment_end=self.YESTERDAY,
-            status=CourseRunStatus.Published
+            status=CourseRunStatus.Published,
         )
         assert course_1.availability_rank
         assert not course_2.availability_rank
@@ -325,21 +330,25 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
     def test_course_availability_reflects_all_course_runs(self):
         course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
 
-        self.attach_published_course_run(course=course, run_type="current and ends after two weeks")
-        self.attach_published_course_run(course=course, run_type='upcoming')
-        self.attach_published_course_run(course=course, run_type='archived')
+        self.attach_published_course_run(
+            course=course, run_type="current and ends after two weeks"
+        )
+        self.attach_published_course_run(course=course, run_type="upcoming")
+        self.attach_published_course_run(course=course, run_type="archived")
 
         assert len(course.availability_level) == 3
-        assert 'Available now' in course.availability_level
-        assert 'Upcoming' in course.availability_level
-        assert 'Archived' in course.availability_level
+        assert "Available now" in course.availability_level
+        assert "Upcoming" in course.availability_level
+        assert "Archived" in course.availability_level
 
     def test_course_not_available_now_if_end_date_too_soon(self):
         course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
 
-        self.attach_published_course_run(course=course, run_type="current and ends within two weeks")
+        self.attach_published_course_run(
+            course=course, run_type="current and ends within two weeks"
+        )
 
-        assert course.availability_level == ['Archived']
+        assert course.availability_level == ["Archived"]
 
     def test_course_availability_empty_if_no_published_runs(self):
         course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
@@ -351,15 +360,19 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         assert course.availability_level == []
 
     def test_spanish_courses_promoted_in_spanish_index(self):
-        colombian_spanish = LanguageTag.objects.get(code='es-co')
-        american_english = LanguageTag.objects.get(code='en-us')
-        spanish_course = self.create_course_with_basic_active_course_run(language=colombian_spanish)
-        english_course = self.create_course_with_basic_active_course_run(language=american_english)
+        colombian_spanish = LanguageTag.objects.get(code="es-co")
+        american_english = LanguageTag.objects.get(code="en-us")
+        spanish_course = self.create_course_with_basic_active_course_run(
+            language=colombian_spanish
+        )
+        english_course = self.create_course_with_basic_active_course_run(
+            language=american_english
+        )
         assert spanish_course.promoted_in_spanish_index
         assert not english_course.promoted_in_spanish_index
 
     @ddt.data(
-        (CourseType.EXECUTIVE_EDUCATION_2U, 'Meta Product Title'),
+        (CourseType.EXECUTIVE_EDUCATION_2U, "Meta Product Title"),
         (CourseType.EXECUTIVE_EDUCATION_2U, None),
         (CourseType.BOOTCAMP_2U, None),
     )
@@ -370,10 +383,8 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         """
         course = AlgoliaProxyCourseFactory(
             partner=self.__class__.edxPartner,
-            type=CourseTypeFactory(
-                slug=type_slug
-            ),
-            additional_metadata=AdditionalMetadataFactory(product_meta=None)
+            type=CourseTypeFactory(slug=type_slug),
+            additional_metadata=AdditionalMetadataFactory(product_meta=None),
         )
         if expected_title:
             course.additional_metadata.product_meta = ProductMetaFactory(
@@ -383,8 +394,7 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         assert course.product_meta_title == expected_title
 
     @ddt.data(
-        (ExternalProductStatus.Published, True),
-        (ExternalProductStatus.Archived, False)
+        (ExternalProductStatus.Published, True), (ExternalProductStatus.Archived, False)
     )
     @ddt.unpack
     def test_product_external_status(self, external_status, should_index):
@@ -394,23 +404,25 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         course = self.create_course_with_basic_active_course_run()
         course.type = CourseTypeFactory(slug=CourseType.EXECUTIVE_EDUCATION_2U)
         course.authoring_organizations.add(OrganizationFactory())
-        course.additional_metadata = AdditionalMetadataFactory(product_status=external_status)
+        course.additional_metadata = AdditionalMetadataFactory(
+            product_status=external_status
+        )
         assert course.should_index == should_index
 
-    @override_settings(RETIRED_COURSE_TYPES=['audit'])
+    @override_settings(RETIRED_COURSE_TYPES=["audit"])
     def test_retired_course_indexing(self):
         """
         Test that retired courses are not indexed
         """
         course = self.create_course_with_basic_active_course_run()
         course.authoring_organizations.add(OrganizationFactory())
-        course.type = CourseTypeFactory(slug='audit')
+        course.type = CourseTypeFactory(slug="audit")
         assert not course.should_index
 
     @ddt.data(
         (None, True),
         (CourseType.BOOTCAMP_2U, True),
-        (CourseType.EXECUTIVE_EDUCATION_2U, True)
+        (CourseType.EXECUTIVE_EDUCATION_2U, True),
     )
     @ddt.unpack
     def test_display_on_org_page(self, type_slug, display_on_org_page):
@@ -429,10 +441,12 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         Verify that the course index has display_on_org_page field.
         """
         course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
-        course.additional_metadata = AdditionalMetadataFactory(display_on_org_page=display_on_org_page)
+        course.additional_metadata = AdditionalMetadataFactory(
+            display_on_org_page=display_on_org_page
+        )
         assert course.product_display_on_org_page == display_on_org_page
 
-    @ddt.data((AlgoliaProxyCourse, 'source_1'), (AlgoliaProxyProgram, 'source_2'))
+    @ddt.data((AlgoliaProxyCourse, "source_1"), (AlgoliaProxyProgram, "source_2"))
     @ddt.unpack
     def test_product_source_with_non_empty_source(self, model_factory, product_source):
         """
@@ -440,7 +454,7 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         """
         product = model_factory(
             partner=self.__class__.edxPartner,
-            product_source=SourceFactory(name=product_source)
+            product_source=SourceFactory(name=product_source),
         )
         assert product.product_source.name == product_source
 
@@ -451,8 +465,7 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         Verify the product source is returned as None if not present.
         """
         product = model_factory(
-            partner=self.__class__.edxPartner,
-            product_source=product_source
+            partner=self.__class__.edxPartner, product_source=product_source
         )
         assert product.product_source is None
 
@@ -462,7 +475,7 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         course.authoring_organizations.add(OrganizationFactory())
         assert course.should_index
 
-    @override_settings(ALGOLIA_INDEX_EXCLUDED_SOURCES=['blocked'])
+    @override_settings(ALGOLIA_INDEX_EXCLUDED_SOURCES=["blocked"])
     def test_product_source_should_excluded(self):
         course = self.create_blocked_course()
         course.authoring_organizations.add(OrganizationFactory())
@@ -470,8 +483,10 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
 
     def test_external_url_when_present(self):
         course = self.create_course_with_basic_active_course_run()
-        course.additional_metadata = AdditionalMetadataFactory(external_url='https://external-url.com')
-        assert course.product_external_url == 'https://external-url.com'
+        course.additional_metadata = AdditionalMetadataFactory(
+            external_url="https://external-url.com"
+        )
+        assert course.product_external_url == "https://external-url.com"
 
     def test_external_url_when_no_additional_metadata_is_present(self):
         course = self.create_course_with_basic_active_course_run()
@@ -511,10 +526,9 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         """
         Verify the course key is returned for course.
         """
-        product_key = 'test+TestCourse'
+        product_key = "test+TestCourse"
         product = AlgoliaProxyCourseFactory(
-            partner=self.__class__.edxPartner,
-            key=product_key
+            partner=self.__class__.edxPartner, key=product_key
         )
         assert product.product_key is product_key
 
@@ -522,11 +536,10 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         """
         Verify the product marketing video url is returned for course.
         """
-        product_marketing_video_url = 'example.com/video_url'
+        product_marketing_video_url = "example.com/video_url"
         video = VideoFactory(src=product_marketing_video_url)
         product = AlgoliaProxyCourseFactory(
-            partner=self.__class__.edxPartner,
-            video=video
+            partner=self.__class__.edxPartner, video=video
         )
         assert product.product_marketing_video_url is product_marketing_video_url
 
@@ -534,40 +547,54 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         course = self.create_course_with_basic_active_course_run()
         course.authoring_organizations.add(OrganizationFactory())
         course.in_year_value = None
-        assert course.product_value_per_click_usa == ProductValue.DEFAULT_VALUE_PER_CLICK
-        assert course.product_value_per_click_international == ProductValue.DEFAULT_VALUE_PER_CLICK
+        assert (
+            course.product_value_per_click_usa == ProductValue.DEFAULT_VALUE_PER_CLICK
+        )
+        assert (
+            course.product_value_per_click_international == ProductValue.DEFAULT_VALUE_PER_CLICK
+        )
         assert course.product_value_per_lead_usa == ProductValue.DEFAULT_VALUE_PER_LEAD
-        assert course.product_value_per_lead_international == ProductValue.DEFAULT_VALUE_PER_LEAD
+        assert (
+            course.product_value_per_lead_international == ProductValue.DEFAULT_VALUE_PER_LEAD
+        )
 
     @ddt.data(False, True)
     def test_learning_type_open_course(self, has_program):
         course_type = CourseTypeFactory()
-        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner, type=course_type)
+        course = AlgoliaProxyCourseFactory(
+            partner=self.__class__.edxPartner, type=course_type
+        )
         if has_program:
             program_type = ProgramTypeFactory()
-            program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner, type=program_type)
+            program = AlgoliaProxyProgramFactory(
+                partner=self.__class__.edxPartner, type=program_type
+            )
             course.programs.set([program])
-            assert course.learning_type == ['Course', program_type.name_t]
+            assert course.learning_type == ["Course", program_type.name_t]
         else:
-            assert course.learning_type == ['Course']
+            assert course.learning_type == ["Course"]
 
     @ddt.data(
-        (ProgramType.XSERIES, 'Certificates'),
-        (ProgramType.MASTERS, 'Master’s'),
-        (ProgramType.MICROMASTERS, 'Pathways to Degrees'),
+        (ProgramType.XSERIES, "Certificates"),
+        (ProgramType.MASTERS, "Master’s"),
+        (ProgramType.MICROMASTERS, "Pathways to Degrees"),
     )
     @ddt.unpack
     def test_learning_type_exp_open_course(self, program_type_slug, learning_type):
         course_type = CourseTypeFactory()
-        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner, type=course_type)
+        course = AlgoliaProxyCourseFactory(
+            partner=self.__class__.edxPartner, type=course_type
+        )
         program_type = ProgramType.objects.get(slug=program_type_slug)
-        program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner, type=program_type)
+        program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, type=program_type
+        )
         course.programs.set([program])
-        assert course.learning_type_exp == ['Course', learning_type]
+        assert course.learning_type_exp == ["Course", learning_type]
 
     @ddt.data(
-        (CourseType.EXECUTIVE_EDUCATION_2U, 'Executive Education'),
-        (CourseType.BOOTCAMP_2U, 'Boot Camp'),
+        (CourseType.EXECUTIVE_EDUCATION_2U, "Executive Education"),
+        (CourseType.BOOTCAMP_2U, "Boot Camp"),
     )
     @ddt.unpack
     def test_learning_type_non_open_course(self, course_type_slug, expected_result):
@@ -576,8 +603,8 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
         assert course.learning_type == [expected_result]
 
     @ddt.data(
-        (CourseType.EXECUTIVE_EDUCATION_2U, 'Executive Education'),
-        (CourseType.BOOTCAMP_2U, 'Boot Camps'),
+        (CourseType.EXECUTIVE_EDUCATION_2U, "Executive Education"),
+        (CourseType.BOOTCAMP_2U, "Boot Camps"),
     )
     @ddt.unpack
     def test_learning_type_exp_non_open_course(self, course_type_slug, expected_result):
@@ -588,16 +615,34 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
     def test_course_ai_languages(self):
         course = self.create_current_upgradeable_course()
         assert course.product_ai_languages == {
-            'translation_languages': ['French'],
-            'transcription_languages': ['English', 'Bosnian']
+            "translation_languages": ["French"],
+            "transcription_languages": ["English", "Bosnian"],
         }
 
     def test_course_ai_languages__no_advertised_run(self):
         course = self.create_blocked_course(status=CourseRunStatus.Unpublished)
         assert course.product_ai_languages == {
-            'translation_languages': [],
-            'transcription_languages': []
+            "translation_languages": [],
+            "transcription_languages": [],
         }
+
+    def test_b2c_subscription_inclusion_defaults_false_for_courses(self):
+        """Test that b2c_subscription_inclusion defaults to False for courses."""
+        course = self.create_course_with_basic_active_course_run()
+        course.authoring_organizations.add(OrganizationFactory())
+        assert course.b2c_subscription_inclusion is False
+
+    def test_b2c_subscription_inclusion_default_for_courses(self):
+        """Test that b2c_subscription_inclusion defaults to False for courses."""
+        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
+        assert course.b2c_subscription_inclusion is False
+
+    def test_b2c_subscription_inclusion_can_be_true_for_courses(self):
+        """Test that b2c_subscription_inclusion can be set to True for courses."""
+        course = AlgoliaProxyCourseFactory(
+            partner=self.__class__.edxPartner, b2c_subscription_inclusion=True
+        )
+        assert course.b2c_subscription_inclusion is True
 
 
 @ddt.ddt
@@ -611,21 +656,21 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
     IN_TWO_MONTHS = datetime.datetime.now(UTC) + datetime.timedelta(days=60)
 
     def attach_course_run(self, course, availability="Archived"):
-        course_start = course_end = ''
-        if availability == 'none':
+        course_start = course_end = ""
+        if availability == "none":
             return CourseRunFactory(
                 course=course,
                 start=self.TOMORROW,
                 end=self.IN_TWO_MONTHS,
-                status=CourseRunStatus.Unpublished
+                status=CourseRunStatus.Unpublished,
             )
-        elif availability == 'Available now':
+        elif availability == "Available now":
             course_start = self.ONE_MONTH_AGO
             course_end = self.IN_FIFTEEN_DAYS
-        elif availability == 'Upcoming':
+        elif availability == "Upcoming":
             course_start = self.TOMORROW
             course_end = self.IN_TWO_MONTHS
-        elif availability == 'Archived':
+        elif availability == "Archived":
             course_start = self.ONE_MONTH_AGO
             course_end = self.YESTERDAY
 
@@ -633,7 +678,7 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
             course=course,
             start=course_start,
             end=course_end,
-            status=CourseRunStatus.Published
+            status=CourseRunStatus.Published,
         )
 
     def attach_archived_course(self, program):
@@ -642,7 +687,7 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
             course=course,
             start=self.ONE_MONTH_AGO,
             end=self.YESTERDAY,
-            status=CourseRunStatus.Published
+            status=CourseRunStatus.Published,
         )
         return program.courses.add(course)
 
@@ -660,17 +705,19 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         program.courses.add(course_2)
 
         assert len(program.availability_level) == 3
-        assert 'Available now' in program.availability_level
-        assert 'Upcoming' in program.availability_level
-        assert 'Archived' in program.availability_level
+        assert "Available now" in program.availability_level
+        assert "Upcoming" in program.availability_level
+        assert "Archived" in program.availability_level
 
-    @ddt.data('masters', 'bachelors', 'doctorate', 'license', 'certificate')
+    @ddt.data("masters", "bachelors", "doctorate", "license", "certificate")
     def test_program_available_now(self, program_type_slug):
         program_type = ProgramTypeFactory()
         program_type.slug = program_type_slug
-        program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner, type=program_type)
+        program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, type=program_type
+        )
 
-        assert program.availability_level == 'Available now'
+        assert program.availability_level == "Available now"
 
     def test_program_not_available_if_no_published_runs(self):
         program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
@@ -681,26 +728,40 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         assert program.availability_level == []
 
     def test_program_availability_if_restricted_runs(self):
-        '''
+        """
         Test that program availability calculation ignores restricted runs
-        '''
+        """
         program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
         course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
-        run = self.attach_published_course_run(course=course, run_type="current and ends within two weeks")
+        run = self.attach_published_course_run(
+            course=course, run_type="current and ends within two weeks"
+        )
         program.courses.add(course)
-        RestrictedCourseRunFactory(course_run=run, restriction_type='custom-b2b-enterprise')
+        RestrictedCourseRunFactory(
+            course_run=run, restriction_type="custom-b2b-enterprise"
+        )
         assert AlgoliaProxyProgram.prefetch_queryset().first().availability_level == []
 
     def test_only_programs_with_spanish_courses_promoted_in_spanish_index(self):
-        all_spanish_program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner, language_override=None)
-        mixed_language_program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner, language_override=None)
-        all_english_program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner, language_override=None)
+        all_spanish_program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, language_override=None
+        )
+        mixed_language_program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, language_override=None
+        )
+        all_english_program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, language_override=None
+        )
 
-        colombian_spanish = LanguageTag.objects.get(code='es-co')
-        american_english = LanguageTag.objects.get(code='en-us')
+        colombian_spanish = LanguageTag.objects.get(code="es-co")
+        american_english = LanguageTag.objects.get(code="en-us")
 
-        spanish_course = self.create_course_with_basic_active_course_run(language=colombian_spanish)
-        english_course = self.create_course_with_basic_active_course_run(language=american_english)
+        spanish_course = self.create_course_with_basic_active_course_run(
+            language=colombian_spanish
+        )
+        english_course = self.create_course_with_basic_active_course_run(
+            language=american_english
+        )
 
         all_spanish_program.courses.add(spanish_course)
         mixed_language_program.courses.add(spanish_course, english_course)
@@ -734,18 +795,21 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         assert not program.should_index
 
     def test_do_not_index_if_not_active(self):
-        unpublished_program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner,
-                                                         status=ProgramStatus.Unpublished)
+        unpublished_program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, status=ProgramStatus.Unpublished
+        )
         unpublished_program.authoring_organizations.add(OrganizationFactory())
         self.attach_archived_course(program=unpublished_program)
 
-        retired_program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner,
-                                                     status=ProgramStatus.Retired)
+        retired_program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, status=ProgramStatus.Retired
+        )
         retired_program.authoring_organizations.add(OrganizationFactory())
         self.attach_archived_course(program=retired_program)
 
-        deleted_program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner,
-                                                     status=ProgramStatus.Deleted)
+        deleted_program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, status=ProgramStatus.Deleted
+        )
         deleted_program.authoring_organizations.add(OrganizationFactory())
         self.attach_archived_course(program=deleted_program)
 
@@ -754,7 +818,9 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         assert not deleted_program.should_index
 
     def test_do_not_index_if_hidden(self):
-        program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner, hidden=True)
+        program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, hidden=True
+        )
         program.authoring_organizations.add(OrganizationFactory())
         self.attach_archived_course(program=program)
         assert not program.should_index
@@ -785,34 +851,38 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
     @ddt.data(True, False)
     def test_program_overrides(self, has_overrides):
         # default
-        american_english = LanguageTag.objects.get(code='en-us')
-        introductory = LevelTypeFactory(name_t='Introductory')
-        computer_science = SubjectFactory(name='Computer Science', partner=self.__class__.edxPartner)
+        american_english = LanguageTag.objects.get(code="en-us")
+        introductory = LevelTypeFactory(name_t="Introductory")
+        computer_science = SubjectFactory(
+            name="Computer Science", partner=self.__class__.edxPartner
+        )
         # overrides
-        colombian_spanish = LanguageTag.objects.get(code='es-co')
-        intermediate = LevelTypeFactory(name_t='Intermediate')
-        business = SubjectFactory(name='Business', partner=self.__class__.edxPartner)
+        colombian_spanish = LanguageTag.objects.get(code="es-co")
+        intermediate = LevelTypeFactory(name_t="Intermediate")
+        business = SubjectFactory(name="Business", partner=self.__class__.edxPartner)
 
         program_data = {
-            'partner': self.__class__.edxPartner,
-            'language_override': None,
-            'level_type_override': None,
-            'primary_subject_override': None
+            "partner": self.__class__.edxPartner,
+            "language_override": None,
+            "level_type_override": None,
+            "primary_subject_override": None,
         }
         if has_overrides:
-            program_data['language_override'] = colombian_spanish
-            program_data['level_type_override'] = intermediate
-            program_data['primary_subject_override'] = business
+            program_data["language_override"] = colombian_spanish
+            program_data["level_type_override"] = intermediate
+            program_data["primary_subject_override"] = business
 
         program = AlgoliaProxyProgramFactory(**program_data)
-        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner, level_type=introductory)
+        course = AlgoliaProxyCourseFactory(
+            partner=self.__class__.edxPartner, level_type=introductory
+        )
         course.subjects.add(computer_science)
         course_run = CourseRunFactory(
             course=course,
             start=self.ONE_MONTH_AGO,
             end=self.IN_FIFTEEN_DAYS,
             status=CourseRunStatus.Published,
-            language=american_english
+            language=american_english,
         )
         SeatFactory(
             course_run=course_run,
@@ -821,25 +891,30 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         program.courses.add(course)
 
         if has_overrides:
-            assert program.active_languages == ['Spanish']
-            assert program.levels == ['Intermediate']
-            assert program.subject_names == ['Business']
+            assert program.active_languages == ["Spanish"]
+            assert program.levels == ["Intermediate"]
+            assert program.subject_names == ["Business"]
         else:
-            assert program.active_languages == ['English']
-            assert program.levels == ['Introductory']
-            assert program.subject_names == ['Computer Science']
+            assert program.active_languages == ["English"]
+            assert program.levels == ["Introductory"]
+            assert program.subject_names == ["Computer Science"]
 
     def test_program_tags(self):
         program = AlgoliaProxyProgramFactory()
         course1 = AlgoliaProxyCourseFactory()
         course2 = AlgoliaProxyCourseFactory()
-        course1.topics.add('course1_topic1', 'course1_topic2', 'generic')
-        course2.topics.add('course2_topic1', 'course2_topic2', 'generic')
-        program.labels.add('program_label1', 'program_label2', 'generic')
+        course1.topics.add("course1_topic1", "course1_topic2", "generic")
+        course2.topics.add("course2_topic1", "course2_topic2", "generic")
+        program.labels.add("program_label1", "program_label2", "generic")
         program.courses.add(course1, course2)
         expected_tags = [
-            'generic', 'course1_topic1', 'program_label2', 'course1_topic2',
-            'course2_topic1', 'course2_topic2', 'program_label1'
+            "generic",
+            "course1_topic1",
+            "program_label2",
+            "course1_topic2",
+            "course2_topic1",
+            "course2_topic2",
+            "program_label1",
         ]
         assert sorted(program.tags) == sorted(expected_tags)
 
@@ -856,26 +931,37 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         Verify the subscription eligible attribute for program is set correctly.
         """
         program = AlgoliaProxyProgramFactory()
-        program.subscription = None if subscription_eligible is None else \
-            ProgramSubscriptionFactory(subscription_eligible=subscription_eligible)
+        program.subscription = (
+            None
+            if subscription_eligible is None
+            else ProgramSubscriptionFactory(subscription_eligible=subscription_eligible)
+        )
         self.assertEqual(program.subscription_eligible, subscription_eligible)
         if subscription_eligible:
-            assert 'Available by subscription' in program.availability_level
+            assert "Available by subscription" in program.availability_level
         else:
             assert program.availability_level == []
 
     @ddt.data(
         None,
-        {'prices': [{'price': 10.00, 'currency': 'USD'}]},
-        {'prices': [{'price': 10.00, 'currency': 'USD'}, {'price': 20.00, 'currency': 'EUR'}]}
+        {"prices": [{"price": 10.00, "currency": "USD"}]},
+        {
+            "prices": [
+                {"price": 10.00, "currency": "USD"},
+                {"price": 20.00, "currency": "EUR"},
+            ]
+        },
     )
     def test_program_subscription_prices(self, prices_data):
         if prices_data:
             subscription = ProgramSubscriptionFactory(subscription_eligible=True)
-            for price in prices_data['prices']:
-                currency = Currency.objects.get(code=price['currency'])
-                ProgramSubscriptionPriceFactory(program_subscription=subscription,
-                                                price=price['price'], currency=currency)
+            for price in prices_data["prices"]:
+                currency = Currency.objects.get(code=price["currency"])
+                ProgramSubscriptionPriceFactory(
+                    program_subscription=subscription,
+                    price=price["price"],
+                    currency=currency,
+                )
                 program = AlgoliaProxyProgramFactory(subscription=subscription)
 
             assert program.subscription_prices is not None
@@ -901,9 +987,11 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
     def test_external_url_when_present(self):
         program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
         degree = DegreeFactory()
-        degree.additional_metadata = DegreeAdditionalMetadataFactory(external_url='https://external-url.com')
+        degree.additional_metadata = DegreeAdditionalMetadataFactory(
+            external_url="https://external-url.com"
+        )
         program.degree = degree
-        assert program.product_external_url == 'https://external-url.com'
+        assert program.product_external_url == "https://external-url.com"
 
     def test_external_url_when_no_additional_metadata_is_present(self):
         program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
@@ -918,30 +1006,40 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
     def test_null_in_year_value(self):
         program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
         program.in_year_value = None
-        assert program.product_value_per_click_usa == ProductValue.DEFAULT_VALUE_PER_CLICK
-        assert program.product_value_per_click_international == ProductValue.DEFAULT_VALUE_PER_CLICK
+        assert (
+            program.product_value_per_click_usa == ProductValue.DEFAULT_VALUE_PER_CLICK
+        )
+        assert (
+            program.product_value_per_click_international == ProductValue.DEFAULT_VALUE_PER_CLICK
+        )
         assert program.product_value_per_lead_usa == ProductValue.DEFAULT_VALUE_PER_LEAD
-        assert program.product_value_per_lead_international == ProductValue.DEFAULT_VALUE_PER_LEAD
+        assert (
+            program.product_value_per_lead_international == ProductValue.DEFAULT_VALUE_PER_LEAD
+        )
 
     def test_learning_type(self):
         program_type = ProgramTypeFactory()
-        program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner, type=program_type)
+        program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, type=program_type
+        )
         assert program.learning_type == [program_type.name_t]
 
     @ddt.data(
-        (ProgramType.PROFESSIONAL_CERTIFICATE, 'Certificates'),
-        (ProgramType.MASTERS, 'Master’s'),
-        (ProgramType.MICROBACHELORS, 'Pathways to Degrees'),
+        (ProgramType.PROFESSIONAL_CERTIFICATE, "Certificates"),
+        (ProgramType.MASTERS, "Master’s"),
+        (ProgramType.MICROBACHELORS, "Pathways to Degrees"),
     )
     @ddt.unpack
     def test_learning_type_exp(self, program_type_slug, learning_type):
         program_type = ProgramType.objects.get(slug=program_type_slug)
-        program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner, type=program_type)
+        program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, type=program_type
+        )
         assert program.learning_type_exp == [learning_type]
 
     def test_program_ai_languages(self):
         program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
         assert program.product_ai_languages == {
-            'translation_languages': [],
-            'transcription_languages': []
+            "translation_languages": [],
+            "transcription_languages": [],
         }
