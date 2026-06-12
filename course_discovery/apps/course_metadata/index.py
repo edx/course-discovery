@@ -18,42 +18,51 @@ class BaseProductIndex(AlgoliaIndex):
     def get_queryset(self):  # pragma: no cover
         if not self.language:
             raise Exception(  # pylint: disable=broad-exception-raised
-                'Cannot update Algolia index \'{index_name}\'. No language set'.format(index_name=self.index_name)
+                "Cannot update Algolia index '{index_name}'. No language set".format(
+                    index_name=self.index_name
+                )
             )
 
         bootcamp_contentful_data = fetch_and_transform_bootcamp_contentful_data()
-        qs1 = [AlgoliaProxyProduct(course, self.language, contentful_data=bootcamp_contentful_data)
-               for course in AlgoliaProxyCourse.prefetch_queryset()]
+        qs1 = [
+            AlgoliaProxyProduct(
+                course, self.language, contentful_data=bootcamp_contentful_data
+            )
+            for course in AlgoliaProxyCourse.prefetch_queryset()
+        ]
 
         degree_contentful_data = fetch_and_transform_degree_contentful_data()
-        qs2 = [AlgoliaProxyProduct(program, self.language, contentful_data=degree_contentful_data)
-               for program in AlgoliaProxyProgram.prefetch_queryset()]
+        qs2 = [
+            AlgoliaProxyProduct(
+                program, self.language, contentful_data=degree_contentful_data
+            )
+            for program in AlgoliaProxyProgram.prefetch_queryset()
+        ]
 
         return qs1 + qs2
 
     def generate_empty_query_rule(self, rule_object_id, product_type, results):
-        promoted_results = [{'objectID': f'{product_type}-{result.uuid}',
-                             'position': index} for index, result in enumerate(results)]
+        promoted_results = [
+            {"objectID": f"{product_type}-{result.uuid}", "position": index}
+            for index, result in enumerate(results)
+        ]
         return {
-            'objectID': rule_object_id,
-            'condition': {
-                'pattern': '',
-                'anchoring': 'is',
-                'alternatives': False
-            },
-            'consequence': {
-                'promote': promoted_results,
-                'filterPromotes': True
-            }
+            "objectID": rule_object_id,
+            "condition": {"pattern": "", "anchoring": "is", "alternatives": False},
+            "consequence": {"promote": promoted_results, "filterPromotes": True},
         }
 
     def get_rules(self):
-        rules_config = SearchDefaultResultsConfiguration.objects.filter(index_name=self.index_name).first()
+        rules_config = SearchDefaultResultsConfiguration.objects.filter(
+            index_name=self.index_name
+        ).first()
         if rules_config:
-            course_rule = self.generate_empty_query_rule('course-empty-query-rule', 'course',
-                                                         rules_config.courses.all())
-            program_rule = self.generate_empty_query_rule('program-empty-query-rule', 'program',
-                                                          rules_config.programs.all())
+            course_rule = self.generate_empty_query_rule(
+                "course-empty-query-rule", "course", rules_config.courses.all()
+            )
+            program_rule = self.generate_empty_query_rule(
+                "program-empty-query-rule", "program", rules_config.programs.all()
+            )
             return [course_rule, program_rule]
         return []
 
@@ -61,10 +70,11 @@ class BaseProductIndex(AlgoliaIndex):
     def reindex_all(self, batch_size=1000):
         # Since reindexing removes all the rules, we will need to recreate the 2U rules after reindexing
         rules_to_create = self.get_rules()
-        rules_to_create_ids = {rule['objectID'] for rule in rules_to_create}
+        rules_to_create_ids = {rule["objectID"] for rule in rules_to_create}
         existing_rules_to_keep = [
-            rule for rule in self._AlgoliaIndex__index.iter_rules()
-            if rule['objectID'] not in rules_to_create_ids
+            rule
+            for rule in self._AlgoliaIndex__index.iter_rules()
+            if rule["objectID"] not in rules_to_create_ids
         ]
         final_rules = rules_to_create + existing_rules_to_keep
         super().reindex_all(batch_size)
@@ -73,115 +83,235 @@ class BaseProductIndex(AlgoliaIndex):
 
 
 class EnglishProductIndex(BaseProductIndex):
-    language = 'en'
+    language = "en"
 
-    search_fields = (('product_title', 'title'), ('partner_names', 'partner'), 'partner_keys', 'product_source',
-                     'primary_description', 'secondary_description', 'tertiary_description', 'tags')
-    facet_fields = (('availability_level', 'availability'), ('subject_names', 'subject'), ('levels', 'level'),
-                    ('active_languages', 'language'), ('product_type', 'product'), ('program_types', 'program_type'),
-                    ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
-                    ('product_blocked_in', 'blocked_in'), 'subscription_eligible',
-                    'subscription_prices', 'learning_type', 'learning_type_exp',
-                    ('product_ai_languages', 'ai_languages'))
-    ranking_fields = ('availability_rank', ('product_recent_enrollment_count', 'recent_enrollment_count'),
-                      ('product_value_per_click_usa', 'value_per_click_usa'),
-                      ('product_value_per_click_international', 'value_per_click_international'),
-                      ('product_value_per_lead_usa', 'value_per_lead_usa'),
-                      ('product_value_per_lead_international', 'value_per_lead_international'))
-    result_fields = (('product_marketing_url', 'marketing_url'), ('product_card_image_url', 'card_image_url'),
-                     ('product_uuid', 'uuid'), ('product_weeks_to_complete', 'weeks_to_complete'),
-                     ('product_max_effort', 'max_effort'), ('product_min_effort', 'min_effort'),
-                     ('product_organization_short_code_override', 'organization_short_code_override'),
-                     ('product_organization_logo_override', 'organization_logo_override'),
-                     ('product_meta_title', 'meta_title'), ('product_display_on_org_page', 'display_on_org_page'),
-                     ('product_external_url', 'external_url'), 'active_run_key',
-                     'active_run_start', 'active_run_type', 'owners', 'course_titles', 'tags',
-                     'skills', 'contentful_fields', 'product_key', 'product_marketing_video_url', )
+    search_fields = (
+        ("product_title", "title"),
+        ("partner_names", "partner"),
+        "partner_keys",
+        "product_source",
+        "primary_description",
+        "secondary_description",
+        "tertiary_description",
+        "tags",
+    )
+    facet_fields = (
+        ("availability_level", "availability"),
+        ("subject_names", "subject"),
+        ("levels", "level"),
+        ("active_languages", "language"),
+        ("product_type", "product"),
+        ("program_types", "program_type"),
+        ("staff_slugs", "staff"),
+        ("product_allowed_in", "allowed_in"),
+        ("product_blocked_in", "blocked_in"),
+        "subscription_eligible",
+        "subscription_prices",
+        "learning_type",
+        "learning_type_exp",
+        ("product_ai_languages", "ai_languages"),
+        "b2c_subscription_inclusion",
+    )
+    ranking_fields = (
+        "availability_rank",
+        ("product_recent_enrollment_count", "recent_enrollment_count"),
+        ("product_value_per_click_usa", "value_per_click_usa"),
+        ("product_value_per_click_international", "value_per_click_international"),
+        ("product_value_per_lead_usa", "value_per_lead_usa"),
+        ("product_value_per_lead_international", "value_per_lead_international"),
+    )
+    result_fields = (
+        ("product_marketing_url", "marketing_url"),
+        ("product_card_image_url", "card_image_url"),
+        ("product_uuid", "uuid"),
+        ("product_weeks_to_complete", "weeks_to_complete"),
+        ("product_max_effort", "max_effort"),
+        ("product_min_effort", "min_effort"),
+        (
+            "product_organization_short_code_override",
+            "organization_short_code_override",
+        ),
+        ("product_organization_logo_override", "organization_logo_override"),
+        ("product_meta_title", "meta_title"),
+        ("product_display_on_org_page", "display_on_org_page"),
+        ("product_external_url", "external_url"),
+        "active_run_key",
+        "active_run_start",
+        "active_run_type",
+        "owners",
+        "course_titles",
+        "tags",
+        "skills",
+        "contentful_fields",
+        "product_key",
+        "product_marketing_video_url",
+        "b2c_subscription_inclusion",
+    )
 
     # Algolia needs this
-    object_id_field = (('custom_object_id', 'objectID'), )
-    fields = search_fields + facet_fields + ranking_fields + result_fields + object_id_field
-    geo_field = 'coordinates'
+    object_id_field = (("custom_object_id", "objectID"),)
+    fields = (
+        search_fields + facet_fields + ranking_fields + result_fields + object_id_field
+    )
+    geo_field = "coordinates"
     settings = {
-        'searchableAttributes': [
-            'unordered(title)',  # AG best practice: position of the search term in plain text fields doesn't matter
-            'partner',
-            'partner_keys',
-            'unordered(primary_description)',
-            'unordered(secondary_description)',
-            'unordered(tertiary_description)',
-            'tags',
-            'contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, '
-            'contentful_fields.faq_items, contentful_fields.featured_products'
+        "searchableAttributes": [
+            "unordered(title)",  # AG best practice: position of the search term in plain text fields doesn't matter
+            "partner",
+            "partner_keys",
+            "unordered(primary_description)",
+            "unordered(secondary_description)",
+            "unordered(tertiary_description)",
+            "tags",
+            "contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, "
+            "contentful_fields.faq_items, contentful_fields.featured_products",
         ],
-        'attributesForFaceting': [
-            'partner', 'availability', 'subject', 'level', 'language', 'product', 'program_type',
-            'filterOnly(staff)', 'filterOnly(allowed_in)', 'filterOnly(blocked_in)', 'skills.skill',
-            'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible', 'subscription_prices',
-            'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
-            'ai_languages.transcription_languages',
+        "attributesForFaceting": [
+            "partner",
+            "availability",
+            "subject",
+            "level",
+            "language",
+            "product",
+            "program_type",
+            "filterOnly(staff)",
+            "filterOnly(allowed_in)",
+            "filterOnly(blocked_in)",
+            "skills.skill",
+            "skills.category",
+            "skills.subcategory",
+            "tags",
+            "subscription_eligible",
+            "subscription_prices",
+            "learning_type",
+            "learning_type_exp",
+            "ai_languages.translation_languages",
+            "ai_languages.transcription_languages",
+            "b2c_subscription_inclusion",
         ],
-        'customRanking': ['asc(availability_rank)', 'desc(recent_enrollment_count)']
+        "customRanking": ["asc(availability_rank)", "desc(recent_enrollment_count)"],
     }
-    index_name = 'product'
-    should_index = 'should_index'
+    index_name = "product"
+    should_index = "should_index"
 
 
 class SpanishProductIndex(BaseProductIndex):
-    language = 'es_419'
+    language = "es_419"
 
-    search_fields = (('product_title', 'title'), ('partner_names', 'partner'), 'partner_keys', 'product_source',
-                     'primary_description', 'secondary_description', 'tertiary_description', 'tags')
-    facet_fields = (('availability_level', 'availability'), ('subject_names', 'subject'), ('levels', 'level'),
-                    ('active_languages', 'language'), ('product_type', 'product'), ('program_types', 'program_type'),
-                    ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
-                    ('product_blocked_in', 'blocked_in'), 'subscription_eligible',
-                    'subscription_prices', 'learning_type', 'learning_type_exp',
-                    ('product_ai_languages', 'ai_languages'))
-    ranking_fields = ('availability_rank', ('product_recent_enrollment_count', 'recent_enrollment_count'),
-                      ('product_value_per_click_usa', 'value_per_click_usa'),
-                      ('product_value_per_click_international', 'value_per_click_international'),
-                      ('product_value_per_lead_usa', 'value_per_lead_usa'),
-                      ('product_value_per_lead_international', 'value_per_lead_international'),
-                      'promoted_in_spanish_index')
-    result_fields = (('product_marketing_url', 'marketing_url'), ('product_card_image_url', 'card_image_url'),
-                     ('product_uuid', 'uuid'), ('product_weeks_to_complete', 'weeks_to_complete'),
-                     ('product_max_effort', 'max_effort'), ('product_min_effort', 'min_effort'), 'active_run_key',
-                     ('product_organization_short_code_override', 'organization_short_code_override'),
-                     ('product_organization_logo_override', 'organization_logo_override'),
-                     ('product_meta_title', 'meta_title'), ('product_display_on_org_page', 'display_on_org_page'),
-                     ('product_external_url', 'external_url'), 'active_run_start',
-                     'active_run_type', 'owners', 'course_titles', 'tags', 'skills',
-                     'contentful_fields', 'product_key', 'product_marketing_video_url', )
+    search_fields = (
+        ("product_title", "title"),
+        ("partner_names", "partner"),
+        "partner_keys",
+        "product_source",
+        "primary_description",
+        "secondary_description",
+        "tertiary_description",
+        "tags",
+    )
+    facet_fields = (
+        ("availability_level", "availability"),
+        ("subject_names", "subject"),
+        ("levels", "level"),
+        ("active_languages", "language"),
+        ("product_type", "product"),
+        ("program_types", "program_type"),
+        ("staff_slugs", "staff"),
+        ("product_allowed_in", "allowed_in"),
+        ("product_blocked_in", "blocked_in"),
+        "subscription_eligible",
+        "subscription_prices",
+        "learning_type",
+        "learning_type_exp",
+        ("product_ai_languages", "ai_languages"),
+        "b2c_subscription_inclusion",
+    )
+    ranking_fields = (
+        "availability_rank",
+        ("product_recent_enrollment_count", "recent_enrollment_count"),
+        ("product_value_per_click_usa", "value_per_click_usa"),
+        ("product_value_per_click_international", "value_per_click_international"),
+        ("product_value_per_lead_usa", "value_per_lead_usa"),
+        ("product_value_per_lead_international", "value_per_lead_international"),
+        "promoted_in_spanish_index",
+    )
+    result_fields = (
+        ("product_marketing_url", "marketing_url"),
+        ("product_card_image_url", "card_image_url"),
+        ("product_uuid", "uuid"),
+        ("product_weeks_to_complete", "weeks_to_complete"),
+        ("product_max_effort", "max_effort"),
+        ("product_min_effort", "min_effort"),
+        "active_run_key",
+        (
+            "product_organization_short_code_override",
+            "organization_short_code_override",
+        ),
+        ("product_organization_logo_override", "organization_logo_override"),
+        ("product_meta_title", "meta_title"),
+        ("product_display_on_org_page", "display_on_org_page"),
+        ("product_external_url", "external_url"),
+        "active_run_start",
+        "active_run_type",
+        "owners",
+        "course_titles",
+        "tags",
+        "skills",
+        "contentful_fields",
+        "product_key",
+        "product_marketing_video_url",
+        "b2c_subscription_inclusion",
+    )
 
     # Algolia uses objectID as unique identifier. Can't use straight uuids because a program and a course could
     # have the same one, so we add 'course' or 'program' as a prefix
-    object_id_field = (('custom_object_id', 'objectID'), )
-    fields = search_fields + facet_fields + ranking_fields + result_fields + object_id_field
-    geo_field = 'coordinates'
+    object_id_field = (("custom_object_id", "objectID"),)
+    fields = (
+        search_fields + facet_fields + ranking_fields + result_fields + object_id_field
+    )
+    geo_field = "coordinates"
     settings = {
-        'searchableAttributes': [
-            'unordered(title)',  # Algolia best practice: position of the term in plain text fields doesn't matter
-            'partner',
-            'partner_keys',
-            'unordered(primary_description)',
-            'unordered(secondary_description)',
-            'unordered(tertiary_description)',
-            'tags',
-            'contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, '
-            'contentful_fields.faq_items, contentful_fields.featured_products'
+        "searchableAttributes": [
+            "unordered(title)",  # Algolia best practice: position of the term in plain text fields doesn't matter
+            "partner",
+            "partner_keys",
+            "unordered(primary_description)",
+            "unordered(secondary_description)",
+            "unordered(tertiary_description)",
+            "tags",
+            "contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, "
+            "contentful_fields.faq_items, contentful_fields.featured_products",
         ],
-        'attributesForFaceting': [
-            'partner', 'availability', 'subject', 'level', 'language', 'product', 'program_type',
-            'filterOnly(staff)', 'filterOnly(allowed_in)', 'filterOnly(blocked_in)',
-            'skills.skill', 'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible',
-            'subscription_prices', 'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
-            'ai_languages.transcription_languages',
+        "attributesForFaceting": [
+            "partner",
+            "availability",
+            "subject",
+            "level",
+            "language",
+            "product",
+            "program_type",
+            "filterOnly(staff)",
+            "filterOnly(allowed_in)",
+            "filterOnly(blocked_in)",
+            "skills.skill",
+            "skills.category",
+            "skills.subcategory",
+            "tags",
+            "subscription_eligible",
+            "subscription_prices",
+            "learning_type",
+            "learning_type_exp",
+            "ai_languages.translation_languages",
+            "ai_languages.transcription_languages",
+            "b2c_subscription_inclusion",
         ],
-        'customRanking': ['desc(promoted_in_spanish_index)', 'asc(availability_rank)', 'desc(recent_enrollment_count)']
+        "customRanking": [
+            "desc(promoted_in_spanish_index)",
+            "asc(availability_rank)",
+            "desc(recent_enrollment_count)",
+        ],
     }
-    index_name = 'spanish_product'
-    should_index = 'should_index_spanish'
+    index_name = "spanish_product"
+    should_index = "should_index_spanish"
 
 
 # Standard algoliasearch_django pattern for populating 2 indices with one model. These are the signatures and structure
@@ -204,7 +334,7 @@ class ProductMetaIndex(AlgoliaIndex):
         for indexer in self.model_index:
             indexer.delete_obj_index(instance)
 
-    def raw_search(self, query='', params={}):
+    def raw_search(self, query="", params={}):
         res = {}
         for indexer in self.model_index:
             res[indexer.name] = indexer.raw_search(query, params)
