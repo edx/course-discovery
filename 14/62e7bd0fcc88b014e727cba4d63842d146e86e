@@ -1,0 +1,19 @@
+course_discovery/apps/course_metadata/admin.py
+  s_24708f64c87bf8::t_53c7062e26398a 1243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "1462e7bd0fcc88b014e727cba4d63842d146e86e",
+  "prompts": {},
+  "sessions": {
+    "s_24708f64c87bf8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6d0bd947-4430-45a0-9725-4f3ea392a37f",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>"
+    }
+  }
+}
