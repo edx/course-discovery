@@ -1,0 +1,22 @@
+course_discovery/apps/course_metadata/search_indexes/serializers/course.py
+  s_24708f64c87bf8::t_3920246e1b1335 169-171
+course_discovery/apps/api/tests/test_serializers.py
+  s_24708f64c87bf8::t_4359a4b1b876fa 2514-2525
+  s_24708f64c87bf8::t_b72503a430193f 2417
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "9b1796a1183221c0849671b6db667bca184a5248",
+  "prompts": {},
+  "sessions": {
+    "s_24708f64c87bf8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6d0bd947-4430-45a0-9725-4f3ea392a37f",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": null
+    }
+  }
+}
