@@ -1240,6 +1240,7 @@ class ProgramSubscriptionPriceAdmin(admin.ModelAdmin):
 class RestrictedCourseRunAdmin(admin.ModelAdmin):
     list_display = ['course_run', 'restriction_type']
     search_fields = ['course_run__key', 'restriction_type']
+    autocomplete_fields = ['course_run']
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('course_run__course')
