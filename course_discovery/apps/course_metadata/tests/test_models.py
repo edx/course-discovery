@@ -1274,6 +1274,38 @@ class CourseRunTests(OAuth2Mixin, TestCase):
         course_run3.save()
         assert course_run3.enterprise_subscription_inclusion is False
 
+    def test_b2c_subscription_inclusion_default(self):
+        """ Verify the default value of b2c_subscription_inclusion is False. """
+        course = factories.CourseFactory()
+        assert course.b2c_subscription_inclusion is False
+
+    def test_b2c_subscription_inclusion_set_true(self):
+        """ Verify b2c_subscription_inclusion can be set to True. """
+        course = factories.CourseFactory(b2c_subscription_inclusion=True)
+        assert course.b2c_subscription_inclusion is True
+
+    def test_b2c_subscription_inclusion_set_false(self):
+        """ Verify b2c_subscription_inclusion can be explicitly set to False. """
+        course = factories.CourseFactory(b2c_subscription_inclusion=False)
+        assert course.b2c_subscription_inclusion is False
+
+    def test_b2c_subscription_inclusion_persistence(self):
+        """ Verify b2c_subscription_inclusion is properly persisted in the database. """
+        course = factories.CourseFactory(b2c_subscription_inclusion=True)
+        course.save()
+
+        # Retrieve the course from the database
+        retrieved_course = Course.objects.get(pk=course.pk)
+        assert retrieved_course.b2c_subscription_inclusion is True
+
+        # Update the value
+        course.b2c_subscription_inclusion = False
+        course.save()
+
+        # Verify the update persisted
+        retrieved_course = Course.objects.get(pk=course.pk)
+        assert retrieved_course.b2c_subscription_inclusion is False
+
     @ddt.data(
         # Case 1: Return False when there are no paid Seats.
         ([('audit', 0)], False),
