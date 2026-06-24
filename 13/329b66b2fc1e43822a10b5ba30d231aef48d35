@@ -1,0 +1,20 @@
+course_discovery/apps/course_metadata/migrations/0357_drop_b2c_subscription_inclusion.py
+  s_90ba76ebef5241::t_3fe1551fbd5da2 1-3,16-22,24
+  s_90ba76ebef5241::t_f5ffa0b23c855b 4-15,23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "13329b66b2fc1e43822a10b5ba30d231aef48d35",
+  "prompts": {},
+  "sessions": {
+    "s_90ba76ebef5241": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7edd7d38-69cf-4d36-8296-91a9b252a729",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>"
+    }
+  }
+}
