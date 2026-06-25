@@ -147,6 +147,7 @@ class MinimalCourseSerializerTests(SiteMixin, TestCase):
             'type': course.type.uuid,
             'course_type': course.type.slug,
             'enterprise_subscription_inclusion': course.enterprise_subscription_inclusion,
+            'b2c_subscription_inclusion': course.b2c_subscription_inclusion,
             'url_slug': None,
             'course_run_statuses': course.course_run_statuses,
         }
@@ -225,6 +226,7 @@ class CourseSerializerTests(MinimalCourseSerializerTests):
             'organization_short_code_override': course.organization_short_code_override,
             'organization_logo_override_url': course.organization_logo_override_url,
             'enterprise_subscription_inclusion': course.enterprise_subscription_inclusion,
+            'b2c_subscription_inclusion': course.b2c_subscription_inclusion,
             'geolocation': GeoLocationSerializer(course.geolocation).data,
             'location_restriction': CourseLocationRestrictionSerializer(
                 course.location_restriction
