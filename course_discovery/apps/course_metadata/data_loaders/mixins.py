@@ -168,12 +168,14 @@ class DataLoaderMixin:
         """
         Helper method to make course and course run api calls.
         """
+        
         response = self.api_client.request(
             method,
             url,
             json=data,
             headers={'content-type': 'application/json'}
         )
+        logger.info(f"Making API call to {url} with method {method} and data: {data}")
         if not response.ok:
             logger.info(f"API request failed for url {url} with response: {response.content.decode('utf-8')}")
         response.raise_for_status()
@@ -259,7 +261,13 @@ class DataLoaderMixin:
             "prices": pricing,
         }
 
-        return {
+        b2c_subscription_inclusion = None
+        if course_data.get('b2c_subscription_inclusion', '').strip():
+            b2c_subscription_inclusion = int(
+                self.parse_boolean_string(course_data.get('b2c_subscription_inclusion', ''))
+            )
+
+        payload = {
             'org': course_data['organization'],
             'title': course_data['title'],
             'number': course_data['number'],
@@ -269,15 +277,22 @@ class DataLoaderMixin:
             'course_run': course_run_creation_fields,
         }
 
+        if b2c_subscription_inclusion is not None:
+            payload['b2c_subscription_inclusion'] = b2c_subscription_inclusion
+
+        return payload
+
     def update_course(self, data, course, course_type, is_draft):
         """
         Update the course data.
         """
         course_api_url = reverse('api:v1:course-detail', kwargs={'key': course.uuid})
         url = f"{settings.DISCOVERY_BASE_URL}{course_api_url}?exclude_utm=1"
+        logger.info(f"Updating course with URL: {url} and data: {data}")  # Debugging line to print the URL and data
         request_data = self.update_course_api_request_data(data, course, course_type, is_draft)
+        logger.info(f"Request data for course update: {request_data}")  # Debugging line to print the request data
         response = self.call_course_api('PATCH', url, request_data)
-
+        logger.info(f"Course update response status code: {response.status_code}")  # Debugging line to print the response status code
         if response.status_code not in (200, 201):
             logger.info(f"Course update response: {response.content}")
         return response.json()
