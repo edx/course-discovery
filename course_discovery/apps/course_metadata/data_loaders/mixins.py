@@ -174,6 +174,7 @@ class DataLoaderMixin:
             json=data,
             headers={'content-type': 'application/json'}
         )
+
         if not response.ok:
             logger.info(f"API request failed for url {url} with response: {response.content.decode('utf-8')}")
         response.raise_for_status()
@@ -259,7 +260,13 @@ class DataLoaderMixin:
             "prices": pricing,
         }
 
-        return {
+        b2c_subscription_inclusion = None
+        if course_data.get('b2c_subscription_inclusion', '').strip():
+            b2c_subscription_inclusion = int(
+                self.parse_boolean_string(course_data.get('b2c_subscription_inclusion', ''))
+            )
+
+        payload = {
             'org': course_data['organization'],
             'title': course_data['title'],
             'number': course_data['number'],
@@ -269,6 +276,11 @@ class DataLoaderMixin:
             'course_run': course_run_creation_fields,
         }
 
+        if b2c_subscription_inclusion is not None:
+            payload['b2c_subscription_inclusion'] = b2c_subscription_inclusion
+
+        return payload
+
     def update_course(self, data, course, course_type, is_draft):
         """
         Update the course data.
@@ -277,7 +289,6 @@ class DataLoaderMixin:
         url = f"{settings.DISCOVERY_BASE_URL}{course_api_url}?exclude_utm=1"
         request_data = self.update_course_api_request_data(data, course, course_type, is_draft)
         response = self.call_course_api('PATCH', url, request_data)
-
         if response.status_code not in (200, 201):
             logger.info(f"Course update response: {response.content}")
         return response.json()
