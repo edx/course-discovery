@@ -174,6 +174,7 @@ class DataLoaderMixin:
             json=data,
             headers={'content-type': 'application/json'}
         )
+        logger.info(f"Making API call to {url} with method {method} and data: {data}")
         if not response.ok:
             logger.info(f"API request failed for url {url} with response: {response.content.decode('utf-8')}")
         response.raise_for_status()
@@ -277,7 +278,7 @@ class DataLoaderMixin:
         url = f"{settings.DISCOVERY_BASE_URL}{course_api_url}?exclude_utm=1"
         request_data = self.update_course_api_request_data(data, course, course_type, is_draft)
         response = self.call_course_api('PATCH', url, request_data)
-
+        logger.info(f"Course update response status code: {response.status_code}")  # Debugging line to print the response status code
         if response.status_code not in (200, 201):
             logger.info(f"Course update response: {response.content}")
         return response.json()
