@@ -168,7 +168,6 @@ class DataLoaderMixin:
         """
         Helper method to make course and course run api calls.
         """
-        
         response = self.api_client.request(
             method,
             url,
