@@ -112,14 +112,15 @@ class EnglishProductIndex(BaseProductIndex):
             'unordered(tertiary_description)',
             'tags',
             'contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, '
-            'contentful_fields.faq_items, contentful_fields.featured_products'
+            'contentful_fields.faq_items, contentful_fields.featured_products',
+            'b2c_subscription_inclusion'
         ],
         'attributesForFaceting': [
             'partner', 'availability', 'subject', 'level', 'language', 'product', 'program_type',
             'filterOnly(staff)', 'filterOnly(allowed_in)', 'filterOnly(blocked_in)', 'skills.skill',
             'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible', 'subscription_prices',
             'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
-            'ai_languages.transcription_languages',
+            'ai_languages.transcription_languages', 'b2c_subscription_inclusion',
         ],
         'customRanking': ['asc(availability_rank)', 'desc(recent_enrollment_count)']
     }
@@ -143,7 +144,7 @@ class SpanishProductIndex(BaseProductIndex):
                       ('product_value_per_click_international', 'value_per_click_international'),
                       ('product_value_per_lead_usa', 'value_per_lead_usa'),
                       ('product_value_per_lead_international', 'value_per_lead_international'),
-                      'promoted_in_spanish_index')
+                      'promoted_in_spanish_index', 'b2c_subscription_inclusion')
     result_fields = (('product_marketing_url', 'marketing_url'), ('product_card_image_url', 'card_image_url'),
                      ('product_uuid', 'uuid'), ('product_weeks_to_complete', 'weeks_to_complete'),
                      ('product_max_effort', 'max_effort'), ('product_min_effort', 'min_effort'), 'active_run_key',
@@ -152,7 +153,8 @@ class SpanishProductIndex(BaseProductIndex):
                      ('product_meta_title', 'meta_title'), ('product_display_on_org_page', 'display_on_org_page'),
                      ('product_external_url', 'external_url'), 'active_run_start',
                      'active_run_type', 'owners', 'course_titles', 'tags', 'skills',
-                     'contentful_fields', 'product_key', 'product_marketing_video_url', )
+                     'contentful_fields', 'product_key', 'product_marketing_video_url',
+                     'b2c_subscription_inclusion')
 
     # Algolia uses objectID as unique identifier. Can't use straight uuids because a program and a course could
     # have the same one, so we add 'course' or 'program' as a prefix
@@ -176,8 +178,7 @@ class SpanishProductIndex(BaseProductIndex):
             'filterOnly(staff)', 'filterOnly(allowed_in)', 'filterOnly(blocked_in)',
             'skills.skill', 'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible',
             'subscription_prices', 'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
-            'ai_languages.transcription_languages',
-        ],
+            'ai_languages.transcription_languages', 'b2c_subscription_inclusion'],
         'customRanking': ['desc(promoted_in_spanish_index)', 'asc(availability_rank)', 'desc(recent_enrollment_count)']
     }
     index_name = 'spanish_product'
