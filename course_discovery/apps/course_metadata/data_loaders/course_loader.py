@@ -489,7 +489,6 @@ class CourseLoader(AbstractDataLoader, DataLoaderMixin):
         Ingests course and courserun data for partial updates.
         """
         for row in self.reader:
-            logger.info(f"Processing row: {row}")  # Debugging line to print the current row being processed
             row = self.transform_dict_keys(row)
             course_key = row.get('course_key', '')
             course_run_key = row.get('course_run_key', '')
