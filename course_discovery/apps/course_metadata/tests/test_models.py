@@ -206,7 +206,7 @@ class TestCourse(TestCase):
         self, is_subdirectory_slug_format_enabled, is_subdirectory_slug_format_for_bootcamp_enabled
     ):
         """
-        Tests automate url slug restructuring for bootcamps must work under its relevant feature flag
+        Tests automate url slug for restructuring for bootcamps must work under its relevant feature flag
         """
         bootcamp_type = CourseTypeFactory(slug=CourseType.BOOTCAMP_2U)
         bootcamp_course_draft = CourseFactory(draft=True, type=bootcamp_type, organization_short_code_override='')
