@@ -82,7 +82,7 @@ class EnglishProductIndex(BaseProductIndex):
                     ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
                     ('product_blocked_in', 'blocked_in'), 'subscription_eligible',
                     'subscription_prices', 'learning_type', 'learning_type_exp',
-                    ('product_ai_languages', 'ai_languages'))
+                    ('product_ai_languages', 'ai_languages'), 'b2c_subscription_inclusion')
     ranking_fields = ('availability_rank', ('product_recent_enrollment_count', 'recent_enrollment_count'),
                       ('product_value_per_click_usa', 'value_per_click_usa'),
                       ('product_value_per_click_international', 'value_per_click_international'),
@@ -96,7 +96,8 @@ class EnglishProductIndex(BaseProductIndex):
                      ('product_meta_title', 'meta_title'), ('product_display_on_org_page', 'display_on_org_page'),
                      ('product_external_url', 'external_url'), 'active_run_key',
                      'active_run_start', 'active_run_type', 'owners', 'course_titles', 'tags',
-                     'skills', 'contentful_fields', 'product_key', 'product_marketing_video_url', )
+                     'skills', 'contentful_fields', 'product_key', 'product_marketing_video_url',
+                     'b2c_subscription_inclusion')
 
     # Algolia needs this
     object_id_field = (('custom_object_id', 'objectID'), )
@@ -104,7 +105,7 @@ class EnglishProductIndex(BaseProductIndex):
     geo_field = 'coordinates'
     settings = {
         'searchableAttributes': [
-            'unordered(title)',  # AG best practice: position of the search term in plain text fields doesn't matter
+            'unordered(title)',  # AG best practice: position of the search term in the plain text fields doesn't matter
             'partner',
             'partner_keys',
             'unordered(primary_description)',
@@ -138,7 +139,7 @@ class SpanishProductIndex(BaseProductIndex):
                     ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
                     ('product_blocked_in', 'blocked_in'), 'subscription_eligible',
                     'subscription_prices', 'learning_type', 'learning_type_exp',
-                    ('product_ai_languages', 'ai_languages'))
+                    ('product_ai_languages', 'ai_languages'), 'b2c_subscription_inclusion')
     ranking_fields = ('availability_rank', ('product_recent_enrollment_count', 'recent_enrollment_count'),
                       ('product_value_per_click_usa', 'value_per_click_usa'),
                       ('product_value_per_click_international', 'value_per_click_international'),
