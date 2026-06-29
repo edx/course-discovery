@@ -1,3 +1,5 @@
+import logging
+
 from algoliasearch_django import AlgoliaIndex, register
 
 from course_discovery.apps.course_metadata.algolia_models import (
@@ -6,6 +8,8 @@ from course_discovery.apps.course_metadata.algolia_models import (
 from course_discovery.apps.course_metadata.contentful_utils import (
     fetch_and_transform_bootcamp_contentful_data, fetch_and_transform_degree_contentful_data
 )
+
+logger = logging.getLogger(__name__)
 
 
 class BaseProductIndex(AlgoliaIndex):
@@ -59,24 +63,47 @@ class BaseProductIndex(AlgoliaIndex):
 
     # Rules aren't automatically set in regular reindex_all, so set them explicitly
     def reindex_all(self, batch_size=1000):
-        # Since reindexing removes all the rules, we will need to recreate the 2U rules after reindexing
-        rules_to_create = self.get_rules()
-        rules_to_create_ids = {rule['objectID'] for rule in rules_to_create}
-        existing_rules_to_keep = [
-            rule for rule in self._AlgoliaIndex__index.iter_rules()
-            if rule['objectID'] not in rules_to_create_ids
-        ]
-        final_rules = rules_to_create + existing_rules_to_keep
-        super().reindex_all(batch_size)
-        if final_rules:
-            self._AlgoliaIndex__index.replace_all_rules(final_rules)
+        logger.info(f"Starting reindex_all for index: '{self.index_name}' with batch_size={batch_size}")
+
+        try:
+            # Fetch rules to recreate and rules to keep
+            rules_to_create = self.get_rules()
+            rules_to_create_ids = {rule['objectID'] for rule in rules_to_create}
+            logger.info(f"Fetching existing rules to keep from Algolia for '{self.index_name}'...")
+            existing_rules_to_keep = [
+                rule for rule in self._AlgoliaIndex__index.iter_rules()
+                if rule['objectID'] not in rules_to_create_ids
+            ]
+            final_rules = rules_to_create + existing_rules_to_keep
+            logger.info(f"Total rules prepared to be saved/restored: {len(final_rules)}")
+
+            # Run the actual Algolia reindexing
+            logger.info(f"Pushing records to Algolia for '{self.index_name}'...")
+            super().reindex_all(batch_size)
+            logger.info(f"Successfully pushed records to Algolia for '{self.index_name}'.")
+
+            # Apply the rules
+            if final_rules:
+                logger.info(f"Replacing all query rules on Algolia for '{self.index_name}'...")
+                self._AlgoliaIndex__index.replace_all_rules(final_rules)
+                logger.info(f"Successfully applied {len(final_rules)} rules.")
+            else:
+                logger.warning(f"No rules found or configured to apply for '{self.index_name}'.")
+
+            logger.info(f"Finished reindex_all successfully for index: '{self.index_name}'")
+
+        except Exception as e:
+            # 4. Error log to catch unexpected failures (e.g., Network timeout, API credentials issue)
+            logger.exception(f"Failed execution of reindex_all for index '{self.index_name}'. Error: {str(e)}")
+            raise e
 
 
 class EnglishProductIndex(BaseProductIndex):
     language = 'en'
 
     search_fields = (('product_title', 'title'), ('partner_names', 'partner'), 'partner_keys', 'product_source',
-                     'primary_description', 'secondary_description', 'tertiary_description', 'tags')
+                     'primary_description', 'secondary_description', 'tertiary_description', 'tags',
+                     'b2c_subscription_inclusion')
     facet_fields = (('availability_level', 'availability'), ('subject_names', 'subject'), ('levels', 'level'),
                     ('active_languages', 'language'), ('product_type', 'product'), ('program_types', 'program_type'),
                     ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
@@ -133,7 +160,8 @@ class SpanishProductIndex(BaseProductIndex):
     language = 'es_419'
 
     search_fields = (('product_title', 'title'), ('partner_names', 'partner'), 'partner_keys', 'product_source',
-                     'primary_description', 'secondary_description', 'tertiary_description', 'tags')
+                     'primary_description', 'secondary_description', 'tertiary_description', 'tags',
+                     'b2c_subscription_inclusion')
     facet_fields = (('availability_level', 'availability'), ('subject_names', 'subject'), ('levels', 'level'),
                     ('active_languages', 'language'), ('product_type', 'product'), ('program_types', 'program_type'),
                     ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
@@ -172,7 +200,7 @@ class SpanishProductIndex(BaseProductIndex):
             'unordered(tertiary_description)',
             'tags',
             'contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, '
-            'contentful_fields.faq_items, contentful_fields.featured_products'
+            'contentful_fields.faq_items, contentful_fields.featured_products', 'b2c_subscription_inclusion'
         ],
         'attributesForFaceting': [
             'partner', 'availability', 'subject', 'level', 'language', 'product', 'program_type',
