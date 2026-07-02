@@ -3,12 +3,11 @@ Django management command to fetch Outcome surveys from Snowflake and add them i
 """
 import logging
 
-import snowflake.connector
-from django.conf import settings
 from django.core.management import BaseCommand, CommandError
 
 from course_discovery.apps.course_metadata.constants import SNOWFLAKE_REFRESH_COURSE_REVIEWS_QUERY
 from course_discovery.apps.course_metadata.models import CourseReview
+from course_discovery.apps.course_metadata.snowflake import get_snowflake_connection
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,12 +35,7 @@ class Command(BaseCommand):
         Get query results from Snowflake and yield each row.
         """
 
-        ctx = snowflake.connector.connect(
-            user=settings.SNOWFLAKE_SERVICE_USER,
-            password=settings.SNOWFLAKE_SERVICE_USER_PASSWORD,
-            account=settings.SNOWFLAKE_ACCOUNT,
-            database=settings.SNOWFLAKE_DATABASE
-        )
+        ctx = get_snowflake_connection()
         cs = ctx.cursor()
         try:
             cs.execute(SNOWFLAKE_REFRESH_COURSE_REVIEWS_QUERY)
