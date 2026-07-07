@@ -1280,17 +1280,17 @@ class CourseRunTests(OAuth2Mixin, TestCase):
         assert course.b2c_subscription_inclusion is False
 
     def test_b2c_subscription_inclusion_set_true(self):
-        """ Verify b2c_subscription_inclusion can be set to True. """
+        """ Verify the b2c_subscription_inclusion can be set to True. """
         course = factories.CourseFactory(b2c_subscription_inclusion=True)
         assert course.b2c_subscription_inclusion is True
 
     def test_b2c_subscription_inclusion_set_false(self):
-        """ Verify b2c_subscription_inclusion can be explicitly set to False. """
+        """ Verify the b2c_subscription_inclusion can be explicitly set to False. """
         course = factories.CourseFactory(b2c_subscription_inclusion=False)
         assert course.b2c_subscription_inclusion is False
 
     def test_b2c_subscription_inclusion_persistence(self):
-        """ Verify b2c_subscription_inclusion is properly persisted in the database. """
+        """ Verify the b2c_subscription_inclusion is properly persisted in the database. """
         course = factories.CourseFactory(b2c_subscription_inclusion=True)
         course.save()
 
