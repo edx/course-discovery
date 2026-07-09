@@ -83,7 +83,7 @@ def delegate_attributes(cls):
                      'secondary_description', 'tertiary_description']
     facet_fields = ['availability_level', 'subject_names', 'levels', 'active_languages', 'staff_slugs',
                     'product_allowed_in', 'product_blocked_in', 'learning_type', 'learning_type_exp',
-                    'product_ai_languages', 'b2c_subscription_inclusion']
+                    'product_ai_languages']
     ranking_fields = ['availability_rank', 'product_recent_enrollment_count', 'promoted_in_spanish_index',
                       'product_value_per_click_usa', 'product_value_per_click_international',
                       'product_value_per_lead_usa', 'product_value_per_lead_international']
@@ -93,7 +93,7 @@ def delegate_attributes(cls):
                      'product_organization_short_code_override', 'product_organization_logo_override', 'skills',
                      'product_meta_title', 'product_display_on_org_page', 'product_external_url',
                      'contentful_fields', 'subscription_eligible', 'subscription_prices', 'product_key',
-                     'product_marketing_video_url', 'b2c_subscription_inclusion']
+                     'product_marketing_video_url', ]
     object_id_field = ['custom_object_id', ]
     fields = product_type_fields + search_fields + facet_fields + ranking_fields + result_fields + object_id_field
     for field in fields:
@@ -488,15 +488,6 @@ class AlgoliaProxyCourse(Course, AlgoliaBasicModelFieldsMixin):
     @property
     def product_marketing_video_url(self):
         return self.video.src if self.video else None
-
-    @property
-    def b2c_subscription_inclusion(self):
-        """Return the stored b2c_subscription_inclusion value for persistence and Algolia indexing."""
-        return self.__dict__.get('_b2c_subscription_inclusion', False)
-
-    @b2c_subscription_inclusion.setter
-    def b2c_subscription_inclusion(self, value):
-        self.__dict__['_b2c_subscription_inclusion'] = value
 
 
 class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):

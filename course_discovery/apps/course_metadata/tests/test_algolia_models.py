@@ -646,24 +646,6 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         )
         return program.courses.add(course)
 
-    def test_b2c_subscription_inclusion_defaults_false_for_courses(self):
-        """Test that b2c_subscription_inclusion defaults to False for courses."""
-        course = self.create_course_with_basic_active_course_run()
-        course.authoring_organizations.add(OrganizationFactory())
-        assert course.b2c_subscription_inclusion is False
-
-    def test_b2c_subscription_inclusion_default_for_courses(self):
-        """Test that b2c_subscription_inclusion defaults to False for courses."""
-        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
-        assert course.b2c_subscription_inclusion is False
-
-    def test_b2c_subscription_inclusion_can_be_true_for_courses(self):
-        """Test that b2c_subscription_inclusion can be set to True for courses."""
-        course = AlgoliaProxyCourseFactory(
-            partner=self.__class__.edxPartner, b2c_subscription_inclusion=True
-        )
-        assert course.b2c_subscription_inclusion is True
-
     def test_program_availability_reflects_all_unique_course_statuses(self):
         program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
 
