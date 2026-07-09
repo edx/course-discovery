@@ -658,7 +658,7 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         assert course.b2c_subscription_inclusion is False
 
     def test_b2c_subscription_inclusion_can_be_true_for_courses(self):
-        """Test that for true b2c_subscription_inclusion can be set to True for courses."""
+        """Test that b2c_subscription_inclusion can be set to True for courses."""
         course = AlgoliaProxyCourseFactory(
             partner=self.__class__.edxPartner, b2c_subscription_inclusion=True
         )
