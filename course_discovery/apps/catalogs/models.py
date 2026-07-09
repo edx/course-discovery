@@ -6,7 +6,6 @@ from django_extensions.db.models import TimeStampedModel
 from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl.query import Q as ESDSLQ
 from guardian.shortcuts import get_users_with_perms
-from simple_history.models import HistoricalRecords
 
 from course_discovery.apps.core.mixins import ModelPermissionsMixin
 from course_discovery.apps.course_metadata.models import Course, CourseRun, Program
@@ -24,8 +23,6 @@ class Catalog(ModelPermissionsMixin, TimeStampedModel):
         default=''
     )
     include_archived = models.BooleanField(default=False, help_text=_('Include archived courses'))
-    # Tracks create/update/delete changes for Catalog in the historical table (catalogs_historicalcatalog)
-    history = HistoricalRecords()
 
     def __str__(self):
         return f'Catalog #{self.id}: {self.name}'
