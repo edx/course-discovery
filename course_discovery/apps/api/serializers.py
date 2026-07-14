@@ -1216,6 +1216,7 @@ class MinimalCourseSerializer(FlexFieldsSerializerMixin, TimestampModelSerialize
     url_slug = serializers.SerializerMethodField()
     course_type = serializers.SerializerMethodField()
     enterprise_subscription_inclusion = serializers.BooleanField(required=False)
+    b2c_subscription_inclusion = serializers.BooleanField(required=False)
     course_run_statuses = serializers.ReadOnlyField()
 
     @classmethod
@@ -1258,7 +1259,7 @@ class MinimalCourseSerializer(FlexFieldsSerializerMixin, TimestampModelSerialize
         model = Course
         fields = ('key', 'uuid', 'title', 'course_runs', 'entitlements', 'owners', 'image',
                   'short_description', 'type', 'url_slug', 'course_type', 'enterprise_subscription_inclusion',
-                  'excluded_from_seo', 'excluded_from_search', 'course_run_statuses')
+                  'b2c_subscription_inclusion', 'excluded_from_seo', 'excluded_from_search', 'course_run_statuses')
 
 
 class CourseEditorSerializer(serializers.ModelSerializer):
@@ -1360,6 +1361,7 @@ class CourseSerializer(TaggitSerializer, MinimalCourseSerializer):
     skill_names = serializers.SerializerMethodField()
     skills = serializers.SerializerMethodField()
     enterprise_subscription_inclusion = serializers.BooleanField(required=False)
+    b2c_subscription_inclusion = serializers.BooleanField(required=False)
     geolocation = GeoLocationSerializer(required=False, allow_null=True)
     location_restriction = CourseLocationRestrictionSerializer(required=False)
     in_year_value = ProductValueSerializer(required=False)
@@ -1435,7 +1437,8 @@ class CourseSerializer(TaggitSerializer, MinimalCourseSerializer):
             'enrollment_count', 'recent_enrollment_count', 'topics', 'partner', 'key_for_reruns', 'url_slug',
             'url_slug_history', 'url_redirects', 'course_run_statuses', 'editors', 'collaborators', 'skill_names',
             'skills', 'organization_short_code_override', 'organization_logo_override_url',
-            'enterprise_subscription_inclusion', 'geolocation', 'location_restriction', 'in_year_value',
+            'enterprise_subscription_inclusion', 'b2c_subscription_inclusion', 'geolocation', 'location_restriction',
+            'in_year_value',
             'product_source', 'data_modified_timestamp', 'excluded_from_search', 'excluded_from_seo', 'watchers',
         )
         read_only_fields = ('enterprise_subscription_inclusion', 'product_source', 'data_modified_timestamp')
