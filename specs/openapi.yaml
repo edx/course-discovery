@@ -1,0 +1,1421 @@
+openapi: 3.0.3
+info:
+  title: Course Discovery REST API
+  version: generated-from-code-2026-07-08
+  description: >-
+    OpenAPI route inventory generated from the Course Discovery Django and DRF URL
+    configuration. Request and response schemas are intentionally generic where the
+    underlying DRF serializers are dynamic, context-sensitive, or Elasticsearch-backed.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+tags:
+  - name: Courses
+  - name: Course Runs
+  - name: Programs
+  - name: Catalogs
+  - name: Search
+  - name: Reference Data
+  - name: People
+  - name: Publisher
+  - name: Learner Pathways
+  - name: Taxonomy
+  - name: Affiliate Feeds
+  - name: Extensions
+  - name: Operations
+paths:
+  /api/v1/catalogs/:
+    get:
+      tags: [Catalogs]
+      operationId: listCatalogs
+      summary: List catalogs.
+      parameters:
+        - $ref: '#/components/parameters/UsernameQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+    post:
+      tags: [Catalogs]
+      operationId: createCatalog
+      summary: Create a catalog.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '201': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/catalogs/{id}/:
+    parameters:
+      - $ref: '#/components/parameters/NumericIdPath'
+    get:
+      tags: [Catalogs]
+      operationId: retrieveCatalog
+      summary: Retrieve catalog details.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Catalogs]
+      operationId: updateCatalog
+      summary: Replace a catalog.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    patch:
+      tags: [Catalogs]
+      operationId: partialUpdateCatalog
+      summary: Partially update a catalog.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    delete:
+      tags: [Catalogs]
+      operationId: deleteCatalog
+      summary: Delete a catalog.
+      responses:
+        '204': { description: Catalog deleted. }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/catalogs/{id}/courses/:
+    get:
+      tags: [Catalogs]
+      operationId: listCatalogCourses
+      summary: List courses contained in a catalog.
+      parameters:
+        - $ref: '#/components/parameters/NumericIdPath'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/catalogs/{id}/contains/:
+    get:
+      tags: [Catalogs]
+      operationId: catalogContains
+      summary: Determine whether courses or course runs are contained in a catalog.
+      parameters:
+        - $ref: '#/components/parameters/NumericIdPath'
+        - $ref: '#/components/parameters/CourseIdQuery'
+        - $ref: '#/components/parameters/CourseRunIdQuery'
+      responses:
+        '200': { $ref: '#/components/responses/ContainsMap' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/catalogs/{id}/csv/:
+    get:
+      tags: [Catalogs]
+      operationId: exportCatalogCsv
+      summary: Export active marketable catalog course runs as CSV.
+      parameters:
+        - $ref: '#/components/parameters/NumericIdPath'
+      responses:
+        '200':
+          description: CSV stream.
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  /api/v1/courses/:
+    get:
+      tags: [Courses]
+      operationId: listCourses
+      summary: List courses.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/EditableQuery'
+        - name: pubq
+          in: query
+          schema: { type: string }
+        - name: keys
+          in: query
+          schema: { type: string }
+        - name: uuids
+          in: query
+          schema: { type: string }
+        - name: include_hidden_course_runs
+          in: query
+          schema: { type: boolean }
+        - name: marketable_course_runs_only
+          in: query
+          schema: { type: boolean }
+        - name: marketable_enrollable_course_runs_with_archived
+          in: query
+          schema: { type: boolean }
+        - name: published_course_runs_only
+          in: query
+          schema: { type: boolean }
+        - name: include_deleted_programs
+          in: query
+          schema: { type: boolean }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    post:
+      tags: [Courses]
+      operationId: createCourse
+      summary: Create a draft course and optional initial course run.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '201': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/courses/{key}/:
+    parameters:
+      - $ref: '#/components/parameters/CourseKeyPath'
+    get:
+      tags: [Courses]
+      operationId: retrieveCourse
+      summary: Retrieve a course by key or UUID.
+      parameters:
+        - $ref: '#/components/parameters/EditableQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Courses]
+      operationId: updateCourse
+      summary: Replace draft course metadata.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    patch:
+      tags: [Courses]
+      operationId: partialUpdateCourse
+      summary: Partially update draft course metadata.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    delete:
+      tags: [Courses]
+      operationId: deleteCourseUnsupported
+      summary: Course deletion route exists but returns 405.
+      responses:
+        '405': { $ref: '#/components/responses/MethodNotAllowed' }
+  /api/v1/course_recommendations/{key}/:
+    get:
+      tags: [Courses]
+      operationId: retrieveCourseWithRecommendations
+      summary: Retrieve a course with embedded recommendation data.
+      parameters:
+        - $ref: '#/components/parameters/CourseKeyPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/course_runs/:
+    get:
+      tags: [Course Runs]
+      operationId: listCourseRuns
+      summary: List course runs.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/EditableQuery'
+        - name: keys
+          in: query
+          schema: { type: string }
+        - name: active
+          in: query
+          schema: { type: boolean }
+        - name: marketable
+          in: query
+          schema: { type: boolean }
+        - name: hidden
+          in: query
+          schema: { type: boolean }
+        - name: license
+          in: query
+          schema: { type: string }
+        - name: include_deleted_programs
+          in: query
+          schema: { type: boolean }
+        - name: include_unpublished_programs
+          in: query
+          schema: { type: boolean }
+        - name: include_retired_programs
+          in: query
+          schema: { type: boolean }
+        - name: ordering
+          in: query
+          schema: { type: string, enum: [start, '-start'] }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    post:
+      tags: [Course Runs]
+      operationId: createCourseRun
+      summary: Create a draft course run.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '201': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/course_runs/contains/:
+    get:
+      tags: [Course Runs]
+      operationId: courseRunContains
+      summary: Determine whether course runs are contained in query results.
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string }
+        - name: course_run_ids
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/ContainsMap' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/course_runs/{key}/:
+    parameters:
+      - $ref: '#/components/parameters/CourseRunKeyPath'
+    get:
+      tags: [Course Runs]
+      operationId: retrieveCourseRun
+      summary: Retrieve a course run.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Course Runs]
+      operationId: updateCourseRun
+      summary: Replace draft course run metadata.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    patch:
+      tags: [Course Runs]
+      operationId: partialUpdateCourseRun
+      summary: Partially update draft course run metadata.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Course Runs]
+      operationId: deleteCourseRunUnsupported
+      summary: Course run deletion route exists but returns 405.
+      responses:
+        '405': { $ref: '#/components/responses/MethodNotAllowed' }
+
+  /api/v1/programs/:
+    get:
+      tags: [Programs]
+      operationId: listPrograms
+      summary: List programs.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - name: marketable
+          in: query
+          schema: { type: boolean }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: types
+          in: query
+          schema: { type: string }
+        - name: uuids
+          in: query
+          schema: { type: string }
+        - name: uuids_only
+          in: query
+          schema: { type: boolean }
+        - name: extended
+          in: query
+          schema: { type: boolean }
+        - name: use_full_course_serializer
+          in: query
+          schema: { type: boolean }
+        - name: published_course_runs_only
+          in: query
+          schema: { type: boolean }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericListOrArray' }
+  /api/v1/programs/{uuid}/:
+    get:
+      tags: [Programs]
+      operationId: retrieveProgram
+      summary: Retrieve a program by UUID.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/programs/{uuid}/update_card_image/:
+    post:
+      tags: [Programs]
+      operationId: updateProgramCardImage
+      summary: Update a program card image. Staff only.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '200': { $ref: '#/components/responses/TextResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/comments/:
+    get:
+      tags: [Courses]
+      operationId: listComments
+      summary: List Salesforce comments for a course.
+      parameters:
+        - name: course_uuid
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { $ref: '#/components/responses/GenericArray' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    post:
+      tags: [Courses]
+      operationId: createComment
+      summary: Create a Salesforce-backed course comment.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '201': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/course_editors/:
+    get:
+      tags: [Courses]
+      operationId: listCourseEditors
+      summary: List course editors visible to the requester.
+      parameters:
+        - name: course
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+    post:
+      tags: [Courses]
+      operationId: createCourseEditor
+      summary: Assign a course editor.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '201': { $ref: '#/components/responses/GenericObject' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/course_editors/{id}/:
+    parameters:
+      - $ref: '#/components/parameters/NumericIdPath'
+    get:
+      tags: [Courses]
+      operationId: retrieveCourseEditor
+      summary: Retrieve a course editor assignment.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+    delete:
+      tags: [Courses]
+      operationId: deleteCourseEditor
+      summary: Delete a course editor assignment.
+      responses:
+        '204': { description: Course editor assignment deleted. }
+  /api/v1/course_review/:
+    get:
+      tags: [Courses]
+      operationId: listCourseReviews
+      summary: List course reviews.
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/course_review/{id}/:
+    get:
+      tags: [Courses]
+      operationId: retrieveCourseReview
+      summary: Retrieve a course review.
+      parameters:
+        - $ref: '#/components/parameters/NumericIdPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+
+  /api/v1/bulk_operation_tasks/:
+    get:
+      tags: [Operations]
+      operationId: listBulkOperationTasks
+      summary: List bulk operation tasks. Staff only.
+      parameters:
+        - name: task_type
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: include_result
+          in: query
+          schema: { type: boolean }
+        - name: ordering
+          in: query
+          schema: { type: string, enum: [created, '-created', status, '-status'] }
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Operations]
+      operationId: createBulkOperationTask
+      summary: Create a bulk operation task. Staff only.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '201': { $ref: '#/components/responses/GenericObject' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/bulk_operation_tasks/{id}/:
+    get:
+      tags: [Operations]
+      operationId: retrieveBulkOperationTask
+      summary: Retrieve a bulk operation task. Staff only.
+      parameters:
+        - $ref: '#/components/parameters/NumericIdPath'
+        - name: include_result
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/collaborators/:
+    get:
+      tags: [Reference Data]
+      operationId: listCollaborators
+      summary: List collaborators.
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+    post:
+      tags: [Reference Data]
+      operationId: createCollaborator
+      summary: Create a collaborator.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObjectBody'
+      responses:
+        '201': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/collaborators/{id}/:
+    parameters:
+      - $ref: '#/components/parameters/NumericIdPath'
+    get:
+      tags: [Reference Data]
+      operationId: retrieveCollaborator
+      summary: Retrieve a collaborator.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+    put:
+      tags: [Reference Data]
+      operationId: updateCollaborator
+      summary: Replace a collaborator.
+      requestBody: { $ref: '#/components/requestBodies/GenericObjectBody' }
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+    patch:
+      tags: [Reference Data]
+      operationId: partialUpdateCollaborator
+      summary: Partially update a collaborator.
+      requestBody: { $ref: '#/components/requestBodies/GenericObjectBody' }
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+    delete:
+      tags: [Reference Data]
+      operationId: deleteCollaborator
+      summary: Delete a collaborator.
+      responses:
+        '204': { description: Collaborator deleted. }
+
+  /api/v1/people/:
+    get:
+      tags: [People]
+      operationId: listPeople
+      summary: List people.
+      parameters:
+        - $ref: '#/components/parameters/PageQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+    post:
+      tags: [People]
+      operationId: createPerson
+      summary: Create a person profile.
+      requestBody: { $ref: '#/components/requestBodies/GenericObjectBody' }
+      responses:
+        '201': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/people/{uuid}/:
+    parameters:
+      - $ref: '#/components/parameters/UuidPath'
+    get:
+      tags: [People]
+      operationId: retrievePerson
+      summary: Retrieve a person profile.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+    put:
+      tags: [People]
+      operationId: updatePerson
+      summary: Replace a person profile.
+      requestBody: { $ref: '#/components/requestBodies/GenericObjectBody' }
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+    patch:
+      tags: [People]
+      operationId: partialUpdatePerson
+      summary: Partially update a person profile.
+      requestBody: { $ref: '#/components/requestBodies/GenericObjectBody' }
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+    delete:
+      tags: [People]
+      operationId: deletePerson
+      summary: Delete a person profile.
+      responses:
+        '204': { description: Person deleted. }
+
+  /api/v1/organizations/:
+    get:
+      tags: [Reference Data]
+      operationId: listOrganizations
+      summary: List organizations.
+      parameters:
+        - name: tags
+          in: query
+          schema: { type: string }
+        - name: uuids
+          in: query
+          schema: { type: string }
+        - name: timestamp
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/organizations/{uuid}/:
+    get:
+      tags: [Reference Data]
+      operationId: retrieveOrganization
+      summary: Retrieve an organization.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+
+  /api/v1/sources/:
+    get:
+      tags: [Reference Data]
+      operationId: listSources
+      summary: List product sources.
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/sources/{slug}/:
+    get:
+      tags: [Reference Data]
+      operationId: retrieveSource
+      summary: Retrieve a product source.
+      parameters:
+        - $ref: '#/components/parameters/SlugPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/subjects/:
+    get:
+      tags: [Reference Data]
+      operationId: listSubjects
+      summary: List subjects.
+      parameters:
+        - $ref: '#/components/parameters/LanguageCodeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/subjects/{slug}/:
+    get:
+      tags: [Reference Data]
+      operationId: retrieveSubject
+      summary: Retrieve a subject.
+      parameters:
+        - $ref: '#/components/parameters/SlugPath'
+        - $ref: '#/components/parameters/LanguageCodeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/topics/:
+    get:
+      tags: [Reference Data]
+      operationId: listTopics
+      summary: List topics.
+      parameters:
+        - $ref: '#/components/parameters/LanguageCodeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/topics/{slug}/:
+    get:
+      tags: [Reference Data]
+      operationId: retrieveTopic
+      summary: Retrieve a topic.
+      parameters:
+        - $ref: '#/components/parameters/SlugPath'
+        - $ref: '#/components/parameters/LanguageCodeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/pathways/:
+    get:
+      tags: [Reference Data]
+      operationId: listLegacyPathways
+      summary: List legacy pathways.
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/pathways/{uuid}/:
+    get:
+      tags: [Reference Data]
+      operationId: retrieveLegacyPathway
+      summary: Retrieve a legacy pathway.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/level_types/:
+    get:
+      tags: [Reference Data]
+      operationId: listLevelTypes
+      summary: List level types.
+      parameters:
+        - $ref: '#/components/parameters/LanguageCodeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/level_types/{id}/:
+    get:
+      tags: [Reference Data]
+      operationId: retrieveLevelType
+      summary: Retrieve a level type.
+      parameters:
+        - $ref: '#/components/parameters/NumericIdPath'
+        - $ref: '#/components/parameters/LanguageCodeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/program_types/:
+    get:
+      tags: [Reference Data]
+      operationId: listProgramTypes
+      summary: List program types.
+      parameters:
+        - $ref: '#/components/parameters/LanguageCodeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/program_types/{uuid}/:
+    get:
+      tags: [Reference Data]
+      operationId: retrieveProgramType
+      summary: Retrieve a program type.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+        - $ref: '#/components/parameters/LanguageCodeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+
+  /api/v1/search/typeahead:
+    get:
+      tags: [Search]
+      operationId: typeaheadSearch
+      summary: Search course run and program typeahead suggestions.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/person_typeahead/:
+    get:
+      tags: [Search]
+      operationId: personTypeaheadSearch
+      summary: Search person typeahead suggestions.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/limited/:
+    get:
+      tags: [Search]
+      operationId: limitedAggregateSearch
+      summary: Search limited aggregate products.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+    post:
+      tags: [Search]
+      operationId: limitedAggregateSearchPost
+      summary: Search limited aggregate products using body parameters.
+      requestBody: { $ref: '#/components/requestBodies/GenericObjectBody' }
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+  /api/v1/search/limited/{uuid}/:
+    get:
+      tags: [Search]
+      operationId: retrieveLimitedAggregateSearchDocument
+      summary: Retrieve a limited aggregate search document.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/limited/facets/:
+    get:
+      tags: [Search]
+      operationId: limitedAggregateSearchFacets
+      summary: Return limited aggregate search facets.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/all/:
+    get:
+      tags: [Search]
+      operationId: aggregateSearch
+      summary: Search all aggregate product documents.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+    post:
+      tags: [Search]
+      operationId: aggregateSearchPost
+      summary: Search all aggregate product documents using body parameters.
+      requestBody: { $ref: '#/components/requestBodies/GenericObjectBody' }
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+  /api/v1/search/all/{uuid}/:
+    get:
+      tags: [Search]
+      operationId: retrieveAggregateSearchDocument
+      summary: Retrieve an aggregate search document.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/all/facets/:
+    get:
+      tags: [Search]
+      operationId: aggregateSearchFacets
+      summary: Return aggregate search facets.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/courses/:
+    get:
+      tags: [Search]
+      operationId: courseSearch
+      summary: Search course documents.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+  /api/v1/search/courses/{key}/:
+    get:
+      tags: [Search]
+      operationId: retrieveCourseSearchDocument
+      summary: Retrieve a course search document.
+      parameters:
+        - $ref: '#/components/parameters/CourseKeyPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/courses/facets/:
+    get:
+      tags: [Search]
+      operationId: courseSearchFacets
+      summary: Return course search facets.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/course_runs/:
+    get:
+      tags: [Search]
+      operationId: courseRunSearch
+      summary: Search course run documents.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+  /api/v1/search/course_runs/{key}/:
+    get:
+      tags: [Search]
+      operationId: retrieveCourseRunSearchDocument
+      summary: Retrieve a course run search document.
+      parameters:
+        - $ref: '#/components/parameters/CourseRunKeyPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/course_runs/facets/:
+    get:
+      tags: [Search]
+      operationId: courseRunSearchFacets
+      summary: Return course run search facets.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/programs/:
+    get:
+      tags: [Search]
+      operationId: programSearch
+      summary: Search program documents.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+  /api/v1/search/programs/{uuid}/:
+    get:
+      tags: [Search]
+      operationId: retrieveProgramSearchDocument
+      summary: Retrieve a program search document.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/programs/facets/:
+    get:
+      tags: [Search]
+      operationId: programSearchFacets
+      summary: Return program search facets.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/people/:
+    get:
+      tags: [Search]
+      operationId: personSearch
+      summary: Search person documents.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+  /api/v1/search/people/{key}/:
+    get:
+      tags: [Search]
+      operationId: retrievePersonSearchDocument
+      summary: Retrieve a person search document.
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/search/people/facets/:
+    get:
+      tags: [Search]
+      operationId: personSearchFacets
+      summary: Return person search facets.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+
+  /api/v1/currency:
+    get:
+      tags: [Reference Data]
+      operationId: retrieveCurrency
+      summary: Return configured currency metadata.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/catalog/query_contains:
+    get:
+      tags: [Catalogs]
+      operationId: catalogQueryContainsV1
+      summary: Determine whether identifiers are contained in an Elasticsearch query.
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string }
+        - name: course_run_ids
+          in: query
+          schema: { type: string }
+        - name: course_uuids
+          in: query
+          schema: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/ContainsMap' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/replace_usernames/:
+    post:
+      tags: [Operations]
+      operationId: replaceUsernames
+      summary: Replace usernames in stored metadata.
+      requestBody: { $ref: '#/components/requestBodies/GenericObjectBody' }
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/v1/partners/affiliate_window/catalogs/{id}/:
+    get:
+      tags: [Affiliate Feeds]
+      operationId: retrieveAffiliateWindowCatalog
+      summary: Return affiliate XML feed data for catalog course seats.
+      parameters:
+        - $ref: '#/components/parameters/NumericIdPath'
+      responses:
+        '200':
+          description: Affiliate XML response.
+          content:
+            application/xml:
+              schema: { type: string }
+  /api/v1/partners/affiliate_window/programs/catalogs/{id}/:
+    get:
+      tags: [Affiliate Feeds]
+      operationId: retrieveProgramsAffiliateWindowCatalog
+      summary: Return affiliate XML feed data for catalog programs.
+      parameters:
+        - $ref: '#/components/parameters/NumericIdPath'
+      responses:
+        '200':
+          description: Affiliate XML response.
+          content:
+            application/xml:
+              schema: { type: string }
+
+  /api/v1/learner-pathway/:
+    get:
+      tags: [Learner Pathways]
+      operationId: listLearnerPathways
+      summary: List active learner pathways.
+      parameters:
+        - name: uuid
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/learner-pathway/uuids/:
+    get:
+      tags: [Learner Pathways]
+      operationId: listLearnerPathwayUuidsForProducts
+      summary: Return pathway UUIDs associated with course keys, run keys, or program UUIDs.
+      parameters:
+        - name: course_keys
+          in: query
+          schema:
+            type: array
+            items: { type: string }
+          style: form
+          explode: true
+        - name: program_uuids
+          in: query
+          schema:
+            type: array
+            items: { type: string, format: uuid }
+          style: form
+          explode: true
+      responses:
+        '200': { $ref: '#/components/responses/GenericArray' }
+  /api/v1/learner-pathway/{uuid}/:
+    get:
+      tags: [Learner Pathways]
+      operationId: retrieveLearnerPathway
+      summary: Retrieve an active learner pathway.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/learner-pathway/{uuid}/snapshot/:
+    get:
+      tags: [Learner Pathways]
+      operationId: retrieveLearnerPathwaySnapshot
+      summary: Retrieve a serialized snapshot of an active learner pathway.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/learner-pathway-step/:
+    get:
+      tags: [Learner Pathways]
+      operationId: listLearnerPathwaySteps
+      summary: List learner pathway steps.
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/learner-pathway-step/{uuid}/:
+    get:
+      tags: [Learner Pathways]
+      operationId: retrieveLearnerPathwayStep
+      summary: Retrieve a learner pathway step.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/learner-pathway-course/:
+    get:
+      tags: [Learner Pathways]
+      operationId: listLearnerPathwayCourses
+      summary: List learner pathway course nodes.
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/learner-pathway-course/{uuid}/:
+    get:
+      tags: [Learner Pathways]
+      operationId: retrieveLearnerPathwayCourse
+      summary: Retrieve a learner pathway course node.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/learner-pathway-program/:
+    get:
+      tags: [Learner Pathways]
+      operationId: listLearnerPathwayPrograms
+      summary: List learner pathway program nodes.
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/learner-pathway-program/{uuid}/:
+    get:
+      tags: [Learner Pathways]
+      operationId: retrieveLearnerPathwayProgram
+      summary: Retrieve a learner pathway program node.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v1/learner-pathway-block/:
+    get:
+      tags: [Learner Pathways]
+      operationId: listLearnerPathwayBlocks
+      summary: List learner pathway block nodes.
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+  /api/v1/learner-pathway-block/{uuid}/:
+    get:
+      tags: [Learner Pathways]
+      operationId: retrieveLearnerPathwayBlock
+      summary: Retrieve a learner pathway block node.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+
+  /api/v2/catalog/query_contains:
+    get:
+      tags: [Catalogs]
+      operationId: catalogQueryContainsV2
+      summary: Determine whether identifiers are contained in an Elasticsearch query using v2 search-after behavior.
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string }
+        - name: course_run_ids
+          in: query
+          schema: { type: string }
+        - name: course_uuids
+          in: query
+          schema: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/ContainsMap' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v2/search/all/:
+    get:
+      tags: [Search]
+      operationId: aggregateSearchV2
+      summary: Search all aggregate product documents with v2 behavior.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PageSizeQuery'
+        - name: search_after
+          in: query
+          schema: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+    post:
+      tags: [Search]
+      operationId: aggregateSearchV2Post
+      summary: Search all aggregate product documents with v2 behavior using body parameters.
+      requestBody: { $ref: '#/components/requestBodies/GenericObjectBody' }
+      responses:
+        '200': { $ref: '#/components/responses/SearchResults' }
+  /api/v2/search/all/{uuid}/:
+    get:
+      tags: [Search]
+      operationId: retrieveAggregateSearchDocumentV2
+      summary: Retrieve a v2 aggregate search document.
+      parameters:
+        - $ref: '#/components/parameters/UuidPath'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /api/v2/search/all/facets/:
+    get:
+      tags: [Search]
+      operationId: aggregateSearchFacetsV2
+      summary: Return v2 aggregate search facets.
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+
+  /publisher/api/admins/organizations/{pk}/roles/:
+    get:
+      tags: [Publisher]
+      operationId: listPublisherOrganizationRoles
+      summary: List organization user roles for Publisher.
+      parameters:
+        - name: pk
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /publisher/api/admins/organizations/{pk}/users/:
+    get:
+      tags: [Publisher]
+      operationId: listPublisherOrganizationGroupUsers
+      summary: List users in an organization extension group.
+      parameters:
+        - name: pk
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /publisher/api/admins/organizations/users/:
+    get:
+      tags: [Publisher]
+      operationId: listPublisherOrganizationUsers
+      summary: List users in the requester's Publisher organizations.
+      responses:
+        '200': { $ref: '#/components/responses/GenericList' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /taxonomy/api/v1/course_recommendations/{course_key}/:
+    get:
+      tags: [Taxonomy]
+      operationId: listTaxonomyCourseRecommendations
+      summary: Return all and same-partner course recommendations for a course.
+      parameters:
+        - name: course_key
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /extensions/api/v1/search/all/facets:
+    get:
+      tags: [Extensions]
+      operationId: aggregateSearchDistinctFacets
+      summary: Return aggregate search facets with distinct counts. Available only when catalog extensions are installed.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200': { $ref: '#/components/responses/GenericObject' }
+  /extensions/api/v1/program-fixture/:
+    get:
+      tags: [Extensions]
+      operationId: retrieveProgramFixture
+      summary: Return a Django fixture for up to ten programs. Staff only.
+      parameters:
+        - name: programs
+          in: query
+          required: true
+          schema: { type: string }
+          description: Comma-separated program UUIDs.
+      responses:
+        '200': { $ref: '#/components/responses/GenericArray' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { description: Too many programs requested. }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    NumericIdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    UuidPath:
+      name: uuid
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SlugPath:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string }
+    CourseKeyPath:
+      name: key
+      in: path
+      required: true
+      schema: { type: string }
+    CourseRunKeyPath:
+      name: key
+      in: path
+      required: true
+      schema: { type: string }
+    SearchQuery:
+      name: q
+      in: query
+      schema: { type: string }
+      description: Elasticsearch query string or typeahead query, depending on endpoint.
+    EditableQuery:
+      name: editable
+      in: query
+      schema: { type: boolean }
+    PageQuery:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1 }
+    PageSizeQuery:
+      name: page_size
+      in: query
+      schema: { type: integer, minimum: 1 }
+    UsernameQuery:
+      name: username
+      in: query
+      schema: { type: string }
+    CourseIdQuery:
+      name: course_id
+      in: query
+      schema: { type: string }
+    CourseRunIdQuery:
+      name: course_run_id
+      in: query
+      schema: { type: string }
+    LanguageCodeQuery:
+      name: language_code
+      in: query
+      schema: { type: string }
+  requestBodies:
+    GenericObjectBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericObject'
+  responses:
+    GenericObject:
+      description: JSON object response.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericObject'
+    GenericArray:
+      description: JSON array response.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/GenericObjectOrScalar'
+    GenericList:
+      description: Paginated or unpaginated list response.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/PaginatedResult'
+              - type: array
+                items:
+                  $ref: '#/components/schemas/GenericObject'
+    GenericListOrArray:
+      description: List response, or flat UUID array for uuids_only behavior.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/PaginatedResult'
+              - type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - $ref: '#/components/schemas/GenericObject'
+    SearchResults:
+      description: Elasticsearch-backed search results.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaginatedResult'
+    ContainsMap:
+      description: Boolean membership map keyed by requested identifiers.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties:
+              oneOf:
+                - type: boolean
+                - type: object
+                  additionalProperties:
+                    type: boolean
+    TextResponse:
+      description: Plain text response.
+      content:
+        text/plain:
+          schema: { type: string }
+        application/json:
+          schema: { type: string }
+    BadRequest:
+      description: Bad request.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Forbidden.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Not found.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    MethodNotAllowed:
+      description: Method not allowed.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    GenericObject:
+      type: object
+      additionalProperties: true
+    GenericObjectOrScalar:
+      oneOf:
+        - $ref: '#/components/schemas/GenericObject'
+        - type: string
+        - type: number
+        - type: boolean
+    PaginatedResult:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GenericObject'
+      additionalProperties: true
+    Error:
+      oneOf:
+        - type: object
+          additionalProperties: true
+        - type: string
