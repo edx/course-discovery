@@ -33,6 +33,7 @@ In scope:
 - Validating course creation CSV rows.
 - Creating a course and initial course run.
 - Updating rich course and course run metadata after creation.
+- Reading optional `b2c_subscription_inclusion` values from course create and partial update CSVs.
 - Downloading course image and organization logo assets.
 - Moving eligible course runs to Legal Review when requested.
 - Capturing summary and error output on the bulk operation task.
@@ -233,6 +234,11 @@ Course creation also expects enrollment track columns for type lookup:
 - `course_enrollment_track`
 - `course_run_enrollment_track`
 
+Optional course-level subscription columns:
+
+- `enterprise_subscription_inclusion`
+- `b2c_subscription_inclusion`
+
 `verified_price` is required unless the course type is audit-only.
 
 When `move_to_legal_review` is `true`, additional fields are required before processing legal review movement:
@@ -289,6 +295,7 @@ The loader checks for an existing draft course for the same partner and key:
 - `type`
 - `prices`
 - nested `course_run` data
+- optional `b2c_subscription_inclusion`
 
 Nested initial course run fields include:
 
@@ -301,6 +308,8 @@ Nested initial course run fields include:
 Start and end datetimes are parsed and serialized in Discovery API datetime format. Missing `start_time` and `end_time` default to `00:00:00` in course creation request data.
 
 Pricing is built from the selected course type's entitlement types and the row's `verified_price`.
+
+When `b2c_subscription_inclusion` is present in the CSV, the loader parses it as a boolean and sends it in the initial Course API create request so the value is inserted into the `course_metadata_course` row. The same value is also included in the post-creation course update payload.
 
 ### 8.6 Post-Creation Enrichment
 
@@ -349,6 +358,7 @@ Update payload fields include:
 - `watchers`
 - `topics`
 - optional `enterprise_subscription_inclusion`
+- optional `b2c_subscription_inclusion`
 
 Subject names are resolved to subject slugs through English subject translations. Collaborator names are stripped, deduplicated, loaded in bulk, and created if missing.
 
@@ -561,6 +571,8 @@ The loader first creates the minimal course and initial course run, then patches
 - Given an existing draft course for the derived key and partner, creation is skipped and an informational `others` entry is added.
 - Given valid row data for a new course, the system creates the course, creates the initial course run, patches rich metadata, patches course run metadata, and increments `success_count`.
 - Given `move_to_legal_review=true` and an unpublished course run with required legal review fields, the system moves the run to Legal Review.
+- Given `b2c_subscription_inclusion` is present in a course create or partial update CSV, the system parses the value as a boolean and patches it onto the course.
+- Given `b2c_subscription_inclusion` is blank or omitted, the system leaves the course value unchanged during partial update.
 
 ## 17. Open Questions
 

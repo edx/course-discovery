@@ -208,6 +208,12 @@ class CourseLoader(AbstractDataLoader, DataLoaderMixin):
             )
             update_course_data['enterprise_subscription_inclusion'] = enterprise_subscription_inclusion
 
+        if course_data.get('b2c_subscription_inclusion', '').strip():
+            b2c_subscription_inclusion = self.parse_boolean_string(
+                course_data.get('b2c_subscription_inclusion', '')
+            )
+            update_course_data['b2c_subscription_inclusion'] = b2c_subscription_inclusion
+
         if self.task_type == BulkOperationType.PartialUpdate:
             prune_empty_values(update_course_data)
 

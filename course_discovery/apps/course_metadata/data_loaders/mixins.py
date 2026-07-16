@@ -259,7 +259,7 @@ class DataLoaderMixin:
             "prices": pricing,
         }
 
-        return {
+        course_creation_fields = {
             'org': course_data['organization'],
             'title': course_data['title'],
             'number': course_data['number'],
@@ -268,6 +268,13 @@ class DataLoaderMixin:
             'prices': pricing,
             'course_run': course_run_creation_fields,
         }
+
+        if course_data.get('b2c_subscription_inclusion', '').strip():
+            course_creation_fields['b2c_subscription_inclusion'] = self.parse_boolean_string(
+                course_data.get('b2c_subscription_inclusion', '')
+            )
+
+        return course_creation_fields
 
     def update_course(self, data, course, course_type, is_draft):
         """

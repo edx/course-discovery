@@ -197,6 +197,8 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
             'type': request.data.get('type'),
             'product_source': request.data.get('product_source'),
         }
+        if request.data.get('b2c_subscription_inclusion') is not None:
+            course_creation_fields['b2c_subscription_inclusion'] = request.data.get('b2c_subscription_inclusion')
         url_slug = request.data.get('url_slug', '')
 
         missing_values = [k for k, v in course_creation_fields.items() if v is None]

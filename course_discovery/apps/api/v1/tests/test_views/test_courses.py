@@ -970,6 +970,14 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
         course.refresh_from_db()
         assert course.active_url_slug == 'course-title'
 
+    def test_create_saves_b2c_subscription_inclusion(self):
+        response = self.create_course({'b2c_subscription_inclusion': True})
+        assert response.status_code == 201
+
+        course = Course.everything.last()
+        assert course.b2c_subscription_inclusion is True
+        assert response.data['b2c_subscription_inclusion'] is True
+
     def test_add_collaborator_uuid_list(self):
         collaborator = {
             'name': 'Collaborator 1',
@@ -2027,6 +2035,18 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
         assert not self.course.entitlements.first().draft
         assert self.course.title == 'Fake Test'
         self.assertDictEqual(response.data, self.serialize_course(course))
+
+    def test_patch_b2c_subscription_inclusion(self):
+        self.course.b2c_subscription_inclusion = True
+        self.course.save()
+
+        url = reverse('api:v1:course-detail', kwargs={'key': self.course.uuid})
+        response = self.client.patch(url, {'b2c_subscription_inclusion': False}, format='json')
+
+        assert response.status_code == 200
+        course = Course.everything.get(uuid=self.course.uuid, draft=True)
+        assert course.b2c_subscription_inclusion is False
+        assert response.data['b2c_subscription_inclusion'] is False
 
     @responses.activate
     def test_patch_resets_run_status(self):
