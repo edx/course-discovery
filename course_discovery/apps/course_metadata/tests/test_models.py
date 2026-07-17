@@ -3557,6 +3557,20 @@ class ProgramTests(TestCase):
         # Assert that the sub tagging has defaulted to false.
         assert not program1.enterprise_subscription_inclusion
 
+    def test_b2c_subscription_inclusion(self):
+        """Verify b2c subscription inclusion can be set on a program."""
+        program = factories.ProgramFactory(
+            b2c_subscription_inclusion=True
+        )
+
+        assert program.b2c_subscription_inclusion is True
+
+    def test_b2c_subscription_exclusion(self):
+        """Verify b2c subscription inclusion defaults to false."""
+        program = factories.ProgramFactory()
+
+        assert program.b2c_subscription_inclusion is False
+
     def test_banner_image(self):
         self.program.banner_image = make_image_file('test_banner.jpg')
         self.program.save()

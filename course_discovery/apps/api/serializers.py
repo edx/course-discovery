@@ -2254,6 +2254,7 @@ class ProgramSerializer(MinimalProgramSerializer):
     applicable_seat_types = serializers.SerializerMethodField()
     topics = serializers.SerializerMethodField()
     enterprise_subscription_inclusion = serializers.BooleanField()
+    b2c_subscription_inclusion = serializers.BooleanField()
     geolocation = GeoLocationSerializer(required=False, allow_null=True)
     location_restriction = ProgramLocationRestrictionSerializer(read_only=True)
     is_2u_degree_program = serializers.BooleanField()
@@ -2336,11 +2337,15 @@ class ProgramSerializer(MinimalProgramSerializer):
             'faq', 'credit_backing_organizations', 'corporate_endorsements', 'job_outlook_items',
             'individual_endorsements', 'languages', 'transcript_languages', 'subjects', 'price_ranges',
             'staff', 'credit_redemption_overview', 'applicable_seat_types', 'instructor_ordering',
-            'enrollment_count', 'topics', 'credit_value', 'enterprise_subscription_inclusion', 'geolocation',
-            'location_restriction', 'is_2u_degree_program', 'in_year_value', 'skill_names', 'skills',
-            'product_source', 'excluded_from_search', 'excluded_from_seo',
+            'enrollment_count', 'topics', 'credit_value', 'enterprise_subscription_inclusion',
+            'b2c_subscription_inclusion', 'geolocation', 'location_restriction',
+            'is_2u_degree_program', 'in_year_value', 'skill_names', 'skills', 'product_source',
+            'excluded_from_search', 'excluded_from_seo',
         )
-        read_only_fields = ('enterprise_subscription_inclusion', 'product_source',)
+        read_only_fields = (
+            'enterprise_subscription_inclusion', 'b2c_subscription_inclusion',
+            'product_source',
+        )
 
 
 class PathwaySerializer(BaseModelSerializer):
