@@ -446,7 +446,7 @@ class ProgramLocationRestrictionAdmin(admin.ModelAdmin):
 @admin.register(Program)
 class ProgramAdmin(DjangoObjectActions, SimpleHistoryAdmin):
     form = ProgramAdminForm
-    list_display = ('id', 'uuid', 'title', 'type', 'partner', 'status', 'hidden')
+    list_display = ('id', 'uuid', 'title', 'type', 'partner', 'status', 'hidden', 'b2c_subscription_inclusion')
     list_filter = ('partner', 'type', 'product_source', 'status', ProgramEligibilityFilter, 'hidden')
     ordering = ('uuid', 'title', 'status')
     readonly_fields = (
@@ -470,8 +470,9 @@ class ProgramAdmin(DjangoObjectActions, SimpleHistoryAdmin):
         'corporate_endorsements', 'faq', 'individual_endorsements', 'job_outlook_items', 'expected_learning_items',
         'instructor_ordering', 'enrollment_count', 'recent_enrollment_count', 'credit_value',
         'organization_short_code_override', 'organization_logo_override', 'primary_subject_override',
-        'level_type_override', 'language_override', 'enterprise_subscription_inclusion', 'in_year_value', 'labels',
-        'geolocation', 'program_duration_override', 'has_ofac_restrictions', 'ofac_comment', 'data_modified_timestamp',
+        'level_type_override', 'language_override', 'enterprise_subscription_inclusion',
+        'b2c_subscription_inclusion', 'in_year_value', 'labels', 'geolocation', 'program_duration_override',
+        'has_ofac_restrictions', 'ofac_comment', 'data_modified_timestamp',
         'excluded_from_search', 'excluded_from_seo'
     )
     change_actions = ('refresh_program_skills', )

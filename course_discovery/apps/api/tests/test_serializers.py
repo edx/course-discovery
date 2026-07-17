@@ -1238,6 +1238,7 @@ class ProgramSerializerTests(MinimalProgramSerializerTests):
             'topics': [topic.name for topic in program.topics],
             'credit_value': program.credit_value,
             'enterprise_subscription_inclusion': program.enterprise_subscription_inclusion,
+            'b2c_subscription_inclusion': program.b2c_subscription_inclusion,
             'product_source': SourceSerializer(program.product_source).data,
             'organization_short_code_override': program.organization_short_code_override,
             'organization_logo_override_url': program.organization_logo_override_url,
