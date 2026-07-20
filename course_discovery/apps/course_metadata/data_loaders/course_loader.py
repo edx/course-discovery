@@ -208,12 +208,6 @@ class CourseLoader(AbstractDataLoader, DataLoaderMixin):
             )
             update_course_data['enterprise_subscription_inclusion'] = enterprise_subscription_inclusion
 
-        if course_data.get('b2c_subscription_inclusion', '').strip():
-            b2c_subscription_inclusion = int(
-                self.parse_boolean_string(course_data.get('b2c_subscription_inclusion', 0))
-            )
-            update_course_data['b2c_subscription_inclusion'] = b2c_subscription_inclusion
-
         if self.task_type == BulkOperationType.PartialUpdate:
             prune_empty_values(update_course_data)
 
@@ -489,7 +483,6 @@ class CourseLoader(AbstractDataLoader, DataLoaderMixin):
         Ingests course and courserun data for partial updates.
         """
         for row in self.reader:
-            logger.info(f"Processing row: {row}")  # Debugging line to print the current row being processed
             row = self.transform_dict_keys(row)
             course_key = row.get('course_key', '')
             course_run_key = row.get('course_run_key', '')
