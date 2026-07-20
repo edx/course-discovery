@@ -751,6 +751,22 @@ class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):
         else:
             return None
 
+    @property
+    def b2c_subscription_inclusion(self):
+        """
+        Return the b2c_subscription_inclusion value from the Program model for Algolia indexing.
+        This field indicates if the program is included in the B2C subscription catalog.
+        """
+        # Check if value was explicitly set via setter (e.g., from data loaders)
+        if '_b2c_subscription_inclusion' in self.__dict__:
+            return self.__dict__['_b2c_subscription_inclusion']
+        # Otherwise return the actual model field value from the database
+        return self.__dict__.get('b2c_subscription_inclusion', False)
+
+    @b2c_subscription_inclusion.setter
+    def b2c_subscription_inclusion(self, value):
+        self.__dict__['_b2c_subscription_inclusion'] = value
+
 
 class SearchDefaultResultsConfiguration(models.Model):
     index_name = models.CharField(max_length=32, unique=True)
