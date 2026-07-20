@@ -1360,6 +1360,7 @@ class CourseSerializer(TaggitSerializer, MinimalCourseSerializer):
     skill_names = serializers.SerializerMethodField()
     skills = serializers.SerializerMethodField()
     enterprise_subscription_inclusion = serializers.BooleanField(required=False)
+    b2c_subscription_inclusion = serializers.BooleanField(required=False)
     geolocation = GeoLocationSerializer(required=False, allow_null=True)
     location_restriction = CourseLocationRestrictionSerializer(required=False)
     in_year_value = ProductValueSerializer(required=False)
@@ -1436,7 +1437,8 @@ class CourseSerializer(TaggitSerializer, MinimalCourseSerializer):
             'url_slug_history', 'url_redirects', 'course_run_statuses', 'editors', 'collaborators', 'skill_names',
             'skills', 'organization_short_code_override', 'organization_logo_override_url',
             'enterprise_subscription_inclusion', 'geolocation', 'location_restriction', 'in_year_value',
-            'product_source', 'data_modified_timestamp', 'excluded_from_search', 'excluded_from_seo', 'watchers',
+            'b2c_subscription_inclusion', 'product_source', 'data_modified_timestamp', 'excluded_from_search',
+            'excluded_from_seo', 'watchers',
         )
         read_only_fields = ('enterprise_subscription_inclusion', 'product_source', 'data_modified_timestamp')
         extra_kwargs = {
