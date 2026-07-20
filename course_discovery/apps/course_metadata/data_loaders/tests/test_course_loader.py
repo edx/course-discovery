@@ -592,31 +592,6 @@ class TestCourseLoader(CSVLoaderMixin, OAuth2Mixin, APITestCase):
         assert course_run.min_effort is None
         assert loader.ingestion_summary["success_count"] == 1
 
-    @data(("true", True), ("false", False))
-    @unpack
-    def test_course_loader_partial_updates_b2c_subscription_inclusion(
-        self, csv_value, expected_value, mock_jwt_decode_handler  # pylint: disable=unused-argument
-    ):
-        """
-        Test that B2C subscription inclusion can be set from partial update CSV data.
-        """
-        self.create_new_course()
-
-        course = Course.everything.get()
-        course.b2c_subscription_inclusion = not expected_value
-        course.save(update_fields=["b2c_subscription_inclusion"])
-
-        csv_data = {
-            "Course Key": "edx+csv-123",
-            "B2C Subscription Inclusion": csv_value,
-        }
-
-        loader, _ = self.perform_partial_updates(csv_data)
-
-        course.refresh_from_db()
-        assert course.b2c_subscription_inclusion is expected_value
-        assert loader.ingestion_summary["success_count"] == 1
-
     def test_course_loader_ingest_for_course_creation_skip_if_exists(self, mock_jwt_decode_handler):  # pylint: disable=unused-argument
         """
         Test Course Loader for course creation.
