@@ -995,3 +995,25 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
             del program.__dict__['b2c_subscription_inclusion']
         # Should return False as default
         assert program.b2c_subscription_inclusion is False
+
+    def test_b2c_subscription_inclusion_retrieved_from_product_for_courses(self):
+        """Test that b2c_subscription_inclusion is retrieved from the underlying product for courses."""
+        course = CourseFactory(partner=self.__class__.edxPartner, b2c_subscription_inclusion=True)
+        proxy_course = AlgoliaProxyCourse(product=course)
+        assert proxy_course.b2c_subscription_inclusion is True
+
+        course.b2c_subscription_inclusion = False
+        course.save()
+        proxy_course_updated = AlgoliaProxyCourse(product=course)
+        assert proxy_course_updated.b2c_subscription_inclusion is False
+
+    def test_b2c_subscription_inclusion_retrieved_from_product_for_programs(self):
+        """Test that b2c_subscription_inclusion is retrieved from the underlying product for programs."""
+        program = ProgramFactory(partner=self.__class__.edxPartner, b2c_subscription_inclusion=True)
+        proxy_program = AlgoliaProxyProgram(product=program)
+        assert proxy_program.b2c_subscription_inclusion is True
+
+        program.b2c_subscription_inclusion = False
+        program.save()
+        proxy_program_updated = AlgoliaProxyProgram(product=program)
+        assert proxy_program_updated.b2c_subscription_inclusion is False
