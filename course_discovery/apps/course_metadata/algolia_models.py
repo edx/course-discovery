@@ -758,7 +758,7 @@ class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):
 
     @b2c_subscription_inclusion.setter
     def b2c_subscription_inclusion(self, value):
-        self.__dict__['b2c_subscription_inclusion'] = value
+        self.__dict__['_b2c_subscription_inclusion'] = value
 
 
 class SearchDefaultResultsConfiguration(models.Model):
