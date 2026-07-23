@@ -491,8 +491,8 @@ class AlgoliaProxyCourse(Course, AlgoliaBasicModelFieldsMixin):
 
     @property
     def b2c_subscription_inclusion(self):
-        """Return the b2c_subscription_inclusion value from the underlying Course instance in Course."""
-        return getattr(self, '_b2c_subscription_inclusion', self.product.b2c_subscription_inclusion)
+        """Return the stored b2c_subscription_inclusion value for persistence and Algolia indexing."""
+        return self.__dict__.get('_b2c_subscription_inclusion', False)
 
     @b2c_subscription_inclusion.setter
     def b2c_subscription_inclusion(self, value):
@@ -753,8 +753,8 @@ class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):
 
     @property
     def b2c_subscription_inclusion(self):
-        """Return the b2c_subscription_inclusion value from the underlying Program instance for the Program."""
-        return getattr(self, '_b2c_subscription_inclusion', self.product.b2c_subscription_inclusion)
+        """Return the stored b2c_subscription_inclusion value for persistence and Algolia indexing."""
+        return self.__dict__.get('_b2c_subscription_inclusion', self.__dict__.get('b2c_subscription_inclusion', False))
 
     @b2c_subscription_inclusion.setter
     def b2c_subscription_inclusion(self, value):

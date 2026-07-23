@@ -997,23 +997,23 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         assert program.b2c_subscription_inclusion is False
 
     def test_b2c_subscription_inclusion_retrieved_from_product_for_courses(self):
-        """Test that b2c_subscription_inclusion is retrieved from the underlying product for courses."""
+        """Test that b2c_subscription_inclusion is retrieved from the underlying course for AlgoliaProxyCourse."""
         course = CourseFactory(partner=self.__class__.edxPartner, b2c_subscription_inclusion=True)
-        proxy_course = AlgoliaProxyCourse(product=course)
+        proxy_course = AlgoliaProxyCourse.objects.get(pk=course.pk)
         assert proxy_course.b2c_subscription_inclusion is True
 
         course.b2c_subscription_inclusion = False
         course.save()
-        proxy_course_updated = AlgoliaProxyCourse(product=course)
+        proxy_course_updated = AlgoliaProxyCourse.objects.get(pk=course.pk)
         assert proxy_course_updated.b2c_subscription_inclusion is False
 
     def test_b2c_subscription_inclusion_retrieved_from_product_for_programs(self):
-        """Test that b2c_subscription_inclusion is retrieved from the underlying product for programs."""
+        """Test that b2c_subscription_inclusion is retrieved from the underlying program for AlgoliaProxyProgram."""
         program = ProgramFactory(partner=self.__class__.edxPartner, b2c_subscription_inclusion=True)
-        proxy_program = AlgoliaProxyProgram(product=program)
+        proxy_program = AlgoliaProxyProgram.objects.get(pk=program.pk)
         assert proxy_program.b2c_subscription_inclusion is True
 
         program.b2c_subscription_inclusion = False
         program.save()
-        proxy_program_updated = AlgoliaProxyProgram(product=program)
+        proxy_program_updated = AlgoliaProxyProgram.objects.get(pk=program.pk)
         assert proxy_program_updated.b2c_subscription_inclusion is False
