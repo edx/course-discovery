@@ -754,7 +754,7 @@ class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):
     @property
     def b2c_subscription_inclusion(self):
         """Return the stored b2c_subscription_inclusion value for persistence and Algolia indexing."""
-        return self.__dict__.get('_b2c_subscription_inclusion', False)
+        return self.__dict__.get('_b2c_subscription_inclusion', self.__dict__.get('b2c_subscription_inclusion', False))
 
     @b2c_subscription_inclusion.setter
     def b2c_subscription_inclusion(self, value):
