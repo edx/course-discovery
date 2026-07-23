@@ -965,7 +965,7 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         }
 
     def test_b2c_subscription_inclusion_default_for_programs(self):
-        """Test that b2c_subscription_inclusion defaults to False for programs."""
+        """Test that b2c_subscription_inclusion defaults to False."""
         program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
         assert program.b2c_subscription_inclusion is False
 
@@ -979,7 +979,7 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         assert program_fresh.b2c_subscription_inclusion is False
 
     def test_b2c_subscription_inclusion_true_persistence(self):
-        """Test that b2c_subscription_inclusion=True is properly persisted and retrieved for programs."""
+        """Test the b2c_subscription_inclusion=True is properly persisted and retrieved for programs."""
         program = AlgoliaProxyProgramFactory(
             partner=self.__class__.edxPartner, b2c_subscription_inclusion=True
         )

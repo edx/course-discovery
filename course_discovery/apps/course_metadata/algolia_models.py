@@ -494,11 +494,7 @@ class AlgoliaProxyCourse(Course, AlgoliaBasicModelFieldsMixin):
         """Return the stored b2c_subscription_inclusion value for persistence and Algolia indexing."""
         return self.__dict__.get('_b2c_subscription_inclusion', False)
 
-    @b2c_subscription_inclusion.setter
-    def b2c_subscription_inclusion(self, value):
-        self.__dict__['_b2c_subscription_inclusion'] = value
-
-
+   
 class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):
 
     class Meta:
@@ -754,12 +750,7 @@ class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):
     @property
     def b2c_subscription_inclusion(self):
         """Return the stored b2c_subscription_inclusion value for persistence and Algolia indexing."""
-        return self.__dict__.get('_b2c_subscription_inclusion', self.__dict__.get('b2c_subscription_inclusion', False))
-
-    @b2c_subscription_inclusion.setter
-    def b2c_subscription_inclusion(self, value):
-        self.__dict__['_b2c_subscription_inclusion'] = value
-
+        return self.__dict__.get('_b2c_subscription_inclusion', False)
 
 class SearchDefaultResultsConfiguration(models.Model):
     index_name = models.CharField(max_length=32, unique=True)
