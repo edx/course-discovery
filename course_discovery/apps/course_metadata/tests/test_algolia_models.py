@@ -978,6 +978,15 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
         program_fresh = AlgoliaProxyProgram.objects.get(pk=program.pk)
         assert program_fresh.b2c_subscription_inclusion is False
 
+    def test_b2c_subscription_inclusion_true_persistence(self):
+        """Test that b2c_subscription_inclusion=True is properly persisted and retrieved for programs."""
+        program = AlgoliaProxyProgramFactory(
+            partner=self.__class__.edxPartner, b2c_subscription_inclusion=True
+        )
+        # Retrieve fresh instance to verify persistence
+        program_fresh = AlgoliaProxyProgram.objects.get(pk=program.pk)
+        assert program_fresh.b2c_subscription_inclusion is True
+
     def test_b2c_subscription_inclusion_accessed_when_field_not_loaded(self):
         """Test b2c_subscription_inclusion returns False when field hasn't been loaded yet."""
         program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
