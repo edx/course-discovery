@@ -5080,6 +5080,13 @@ class BulkOperationTask(TimeStampedModel):
         help_text=_('Identifier of the celery task associated with this bulk task')
     )
 
+    class Meta(TimeStampedModel.Meta):
+        get_latest_by = 'modified'  # preserve inherited behavior
+        indexes = [
+            models.Index(fields=['-created'], name='cm_bo_task_created_idx'),
+            models.Index(fields=['status', '-created'], name='cm_bo_task_status_created_idx'),
+        ]
+
     def save(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         if not self.uploaded_by:
