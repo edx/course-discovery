@@ -489,15 +489,6 @@ class AlgoliaProxyCourse(Course, AlgoliaBasicModelFieldsMixin):
     def product_marketing_video_url(self):
         return self.video.src if self.video else None
 
-    @property
-    def b2c_subscription_inclusion(self):
-        """Return the stored b2c_subscription_inclusion value for persistence and Algolia indexing."""
-        return self.__dict__.get('_b2c_subscription_inclusion', False)
-
-    @b2c_subscription_inclusion.setter
-    def b2c_subscription_inclusion(self, value):
-        self.__dict__['_b2c_subscription_inclusion'] = value
-
 
 class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):
 
