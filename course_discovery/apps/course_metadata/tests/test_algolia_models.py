@@ -963,3 +963,32 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
             'translation_languages': [],
             'transcription_languages': []
         }
+
+
+@pytest.mark.django_db
+class TestB2CSubscriptionInclusion(TestCase):
+    """Test cases for the b2c_subscription_inclusion field."""
+
+    def test_b2c_subscription_inclusion_true_for_course(self):
+        """Verify b2c_subscription_inclusion is True for a course when set."""
+        course = CourseFactory(b2c_subscription_inclusion=True)
+        proxy_course = AlgoliaProxyCourse(product=course)
+        self.assertTrue(proxy_course.b2c_subscription_inclusion)
+
+    def test_b2c_subscription_inclusion_false_for_course(self):
+        """Verify b2c_subscription_inclusion is False for a course when not set."""
+        course = CourseFactory(b2c_subscription_inclusion=False)
+        proxy_course = AlgoliaProxyCourse(product=course)
+        self.assertFalse(proxy_course.b2c_subscription_inclusion)
+
+    def test_b2c_subscription_inclusion_true_for_program(self):
+        """Verify b2c_subscription_inclusion is True for a program when set."""
+        program = ProgramFactory(b2c_subscription_inclusion=True)
+        proxy_program = AlgoliaProxyProgram(product=program)
+        self.assertTrue(proxy_program.b2c_subscription_inclusion)
+
+    def test_b2c_subscription_inclusion_false_for_program(self):
+        """Verify b2c_subscription_inclusion is False for a program when not set."""
+        program = ProgramFactory(b2c_subscription_inclusion=False)
+        proxy_program = AlgoliaProxyProgram(product=program)
+        self.assertFalse(proxy_program.b2c_subscription_inclusion)
