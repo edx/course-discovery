@@ -226,6 +226,15 @@ class AlgoliaBasicModelFieldsMixin(models.Model):
             return getattr(geolocation, 'coordinates', ALGOLIA_DEFAULT_GEO_COORDINATES)
         return ALGOLIA_DEFAULT_GEO_COORDINATES
 
+    @property
+    def b2c_subscription_inclusion(self):
+        """Return the b2c_subscription_inclusion value from the underlying product instance."""
+        # If this is a wrapped product (using the product attribute), get from product
+        if hasattr(self, 'product') and self.product is not None:
+            return getattr(self.product, 'b2c_subscription_inclusion', False)
+        # Otherwise get from the instance itself, avoiding infinite recursion by checking __dict__
+        return self.__dict__.get('b2c_subscription_inclusion', False)
+
 
 class AlgoliaProxyCourse(Course, AlgoliaBasicModelFieldsMixin):
 
@@ -488,15 +497,6 @@ class AlgoliaProxyCourse(Course, AlgoliaBasicModelFieldsMixin):
     @property
     def product_marketing_video_url(self):
         return self.video.src if self.video else None
-
-    @property
-    def b2c_subscription_inclusion(self):
-        """Return the stored b2c_subscription_inclusion value for persistence and Algolia indexing."""
-        return self.__dict__.get('_b2c_subscription_inclusion', False)
-
-    @b2c_subscription_inclusion.setter
-    def b2c_subscription_inclusion(self, value):
-        self.__dict__['_b2c_subscription_inclusion'] = value
 
 
 class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):
