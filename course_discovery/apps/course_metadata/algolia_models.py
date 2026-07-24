@@ -80,10 +80,10 @@ def delegate_attributes(cls):
 
     product_type_fields = ['product_type']
     search_fields = ['partner_names', 'partner_keys', 'product_title', 'product_source', 'primary_description',
-                     'secondary_description', 'tertiary_description']
+                     'secondary_description', 'tertiary_description', 'product_b2c_subscription_inclusion']
     facet_fields = ['availability_level', 'subject_names', 'levels', 'active_languages', 'staff_slugs',
                     'product_allowed_in', 'product_blocked_in', 'learning_type', 'learning_type_exp',
-                    'product_ai_languages', 'b2c_subscription_inclusion']
+                    'product_ai_languages', 'product_b2c_subscription_inclusion']
     ranking_fields = ['availability_rank', 'product_recent_enrollment_count', 'promoted_in_spanish_index',
                       'product_value_per_click_usa', 'product_value_per_click_international',
                       'product_value_per_lead_usa', 'product_value_per_lead_international']
@@ -93,7 +93,7 @@ def delegate_attributes(cls):
                      'product_organization_short_code_override', 'product_organization_logo_override', 'skills',
                      'product_meta_title', 'product_display_on_org_page', 'product_external_url',
                      'contentful_fields', 'subscription_eligible', 'subscription_prices', 'product_key',
-                     'product_marketing_video_url', 'b2c_subscription_inclusion']
+                     'product_marketing_video_url', 'product_b2c_subscription_inclusion']
     object_id_field = ['custom_object_id', ]
     fields = product_type_fields + search_fields + facet_fields + ranking_fields + result_fields + object_id_field
     for field in fields:
@@ -186,6 +186,10 @@ class AlgoliaBasicModelFieldsMixin(models.Model):
     @property
     def product_recent_enrollment_count(self):
         return self.recent_enrollment_count
+
+    @property
+    def product_b2c_subscription_inclusion(self):
+        return self.b2c_subscription_inclusion
 
     # For product_value_per_*, return default values if in_year_value is None to ensure that products don't get lost
     # in the ranking
