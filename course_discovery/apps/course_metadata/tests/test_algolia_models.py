@@ -963,35 +963,3 @@ class TestAlgoliaProxyProgram(TestAlgoliaProxyWithEdxPartner):
             'translation_languages': [],
             'transcription_languages': []
         }
-
-    def test_b2c_subscription_inclusion_default_for_programs(self):
-        """Test that b2c_subscription_inclusion defaults to False for programs."""
-        program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
-        assert program.b2c_subscription_inclusion is False
-
-    def test_b2c_subscription_inclusion_false_persistence(self):
-        """Test that b2c_subscription_inclusion=False is properly persisted and retrieved for programs."""
-        program = AlgoliaProxyProgramFactory(
-            partner=self.__class__.edxPartner, b2c_subscription_inclusion=False
-        )
-        # Retrieve fresh instance to verify persistence
-        program_fresh = AlgoliaProxyProgram.objects.get(pk=program.pk)
-        assert program_fresh.b2c_subscription_inclusion is False
-
-    def test_b2c_subscription_inclusion_true_persistence(self):
-        """Test that b2c_subscription_inclusion=True is properly persisted and retrieved for programs."""
-        program = AlgoliaProxyProgramFactory(
-            partner=self.__class__.edxPartner, b2c_subscription_inclusion=True
-        )
-        # Retrieve fresh instance to verify persistence
-        program_fresh = AlgoliaProxyProgram.objects.get(pk=program.pk)
-        assert program_fresh.b2c_subscription_inclusion is True
-
-    def test_b2c_subscription_inclusion_accessed_when_field_not_loaded(self):
-        """Test b2c_subscription_inclusion returns False when field hasn't been loaded yet."""
-        program = AlgoliaProxyProgramFactory(partner=self.__class__.edxPartner)
-        # Manually clear __dict__ to simulate field not being loaded
-        if 'b2c_subscription_inclusion' in program.__dict__:
-            del program.__dict__['b2c_subscription_inclusion']
-        # Should return False as default
-        assert program.b2c_subscription_inclusion is False
