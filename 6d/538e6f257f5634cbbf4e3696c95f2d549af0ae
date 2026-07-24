@@ -1,0 +1,24 @@
+course_discovery/apps/course_metadata/admin.py
+  s_c4f96bce7228b0::t_daa587b81a645a 454
+course_discovery/apps/course_metadata/models.py
+  s_c4f96bce7228b0::t_bc373f3ef49f65 3946-3953
+  s_c4f96bce7228b0::t_6336bf085c0812 3991,3999
+course_discovery/apps/course_metadata/tests/test_models.py
+  s_c4f96bce7228b0::t_557a967770c6df 3561-3571,3573-3576,3579-3587
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "6d538e6f257f5634cbbf4e3696c95f2d549af0ae",
+  "prompts": {},
+  "sessions": {
+    "s_c4f96bce7228b0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0602f992-984c-48e3-9eb7-57d30994e08c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "rgopalrao-sonata-png <rgopalrao-sonata@2u.com>"
+    }
+  }
+}
