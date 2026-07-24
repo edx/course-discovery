@@ -1,0 +1,87 @@
+course_discovery/apps/learner_pathway/migrations/0003_auto_20220119_0726.py
+  053a4ac4343402bb 29
+course_discovery/apps/course_metadata/tests/factories.py
+  19751c5d2a689b89 1045
+course_discovery/apps/course_metadata/migrations/0024_auto_20160901_1426.py
+  053a4ac4343402bb 14,20,26,31
+course_discovery/apps/course_metadata/migrations/0177_historicalprogram_historicalprogramtype.py
+  053a4ac4343402bb 30
+course_discovery/apps/course_metadata/migrations/0171_historicalcourserun.py
+  053a4ac4343402bb 43
+course_discovery/apps/course_metadata/management/commands/tests/test_populate_product_catalog.py
+  fd42a7343d18517d 165,268
+course_discovery/apps/course_metadata/migrations/0311_additionalmetadata_external_course_marketing_type.py
+  053a4ac4343402bb 16
+course_discovery/apps/publisher/migrations/0066_add_default_pacing_type.py
+  053a4ac4343402bb 17,22
+course_discovery/apps/api/views.py
+  fd42a7343d18517d 5,15
+course_discovery/apps/course_metadata/migrations/0168_auto_20190404_1733.py
+  053a4ac4343402bb 42
+course_discovery/apps/api/v1/tests/test_views/test_search.py
+  fd42a7343d18517d 1233-1239
+course_discovery/apps/course_metadata/migrations/0001_squashed_0033_courserun_mobile_available.py
+  053a4ac4343402bb 410
+course_discovery/apps/course_metadata/migrations/0083_auto_20180511_1406.py
+  053a4ac4343402bb 26
+course_discovery/apps/course_metadata/migrations/0286_add_default_status_to_program.py
+  053a4ac4343402bb 16,21
+course_discovery/settings/test.py
+  19751c5d2a689b89 57
+course_discovery/apps/course_metadata/migrations/0301_external_product_line_status.py
+  053a4ac4343402bb 16
+course_discovery/apps/course_metadata/migrations/0174_reorder_course_run_statuses.py
+  053a4ac4343402bb 17,22
+course_discovery/apps/publisher/migrations/0005_auto_20160901_0003.py
+  053a4ac4343402bb 14,19
+course_discovery/apps/api/tests/test_serializers.py
+  19751c5d2a689b89 2982-2987
+course_discovery/apps/course_metadata/migrations/0011_auto_20160805_1949.py
+  053a4ac4343402bb 186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.3",
+  "base_commit_sha": "0306ce02b2194429399a4676ac61a5456073237f",
+  "prompts": {
+    "053a4ac4343402bb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "51b1d2b2-ce54-41fc-ae5e-6875a3ba949e",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>",
+      "messages": [],
+      "total_additions": 25,
+      "total_deletions": 39,
+      "accepted_lines": 21,
+      "overriden_lines": 0
+    },
+    "19751c5d2a689b89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "32707cc2-9f50-45b3-bfb3-e30042d09635",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": null,
+      "messages": [],
+      "total_additions": 10,
+      "total_deletions": 3,
+      "accepted_lines": 8,
+      "overriden_lines": 0
+    },
+    "fd42a7343d18517d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6c0821bb-eb7e-4cd8-b924-f5da9f5cc23a",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": null,
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 12,
+      "accepted_lines": 11,
+      "overriden_lines": 0
+    }
+  }
+}

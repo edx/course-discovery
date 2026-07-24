@@ -1,0 +1,49 @@
+course_discovery/apps/course_metadata/migrations/0001_squashed_0033_courserun_mobile_available.py
+  053a4ac4343402bb 410
+course_discovery/apps/publisher/migrations/0066_add_default_pacing_type.py
+  053a4ac4343402bb 17,22
+course_discovery/apps/course_metadata/migrations/0024_auto_20160901_1426.py
+  053a4ac4343402bb 14,20,26,31
+course_discovery/apps/publisher/migrations/0005_auto_20160901_0003.py
+  053a4ac4343402bb 14,19
+course_discovery/apps/learner_pathway/migrations/0003_auto_20220119_0726.py
+  053a4ac4343402bb 29
+course_discovery/apps/course_metadata/migrations/0083_auto_20180511_1406.py
+  053a4ac4343402bb 26
+course_discovery/apps/course_metadata/migrations/0311_additionalmetadata_external_course_marketing_type.py
+  053a4ac4343402bb 16
+course_discovery/apps/course_metadata/migrations/0168_auto_20190404_1733.py
+  053a4ac4343402bb 42
+course_discovery/apps/course_metadata/migrations/0171_historicalcourserun.py
+  053a4ac4343402bb 43
+course_discovery/apps/course_metadata/migrations/0177_historicalprogram_historicalprogramtype.py
+  053a4ac4343402bb 30
+course_discovery/apps/course_metadata/migrations/0286_add_default_status_to_program.py
+  053a4ac4343402bb 16,21
+course_discovery/apps/course_metadata/migrations/0011_auto_20160805_1949.py
+  053a4ac4343402bb 186
+course_discovery/apps/course_metadata/migrations/0174_reorder_course_run_statuses.py
+  053a4ac4343402bb 17,22
+course_discovery/apps/course_metadata/migrations/0301_external_product_line_status.py
+  053a4ac4343402bb 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "09721afaf51da80d424b2ddf7bcc6b47463dae53",
+  "prompts": {
+    "053a4ac4343402bb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "51b1d2b2-ce54-41fc-ae5e-6875a3ba949e",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>",
+      "messages": [],
+      "total_additions": 25,
+      "total_deletions": 39,
+      "accepted_lines": 21,
+      "overriden_lines": 0
+    }
+  }
+}

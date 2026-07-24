@@ -1,0 +1,19 @@
+course_discovery/apps/api/tests/test_serializers.py
+  s_24708f64c87bf8::t_b72503a430193f 2417
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "67052885d2e4eecd845c0a12364ff68ea6a95cf3",
+  "prompts": {},
+  "sessions": {
+    "s_24708f64c87bf8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6d0bd947-4430-45a0-9725-4f3ea392a37f",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>"
+    }
+  }
+}
