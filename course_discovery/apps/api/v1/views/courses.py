@@ -1,17 +1,20 @@
 import logging
 import re
+from csv import writer
+from io import StringIO
 
 from django.conf import settings
 from django.core import validators
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Q
-from django.http.response import Http404
+from django.db.models import Prefetch, Q
+from django.http.response import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters as rest_framework_filters
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
@@ -38,6 +41,8 @@ from course_discovery.apps.course_metadata.toggles import IS_COURSE_RUN_FOR_DUMM
 from course_discovery.apps.course_metadata.utils import (
     create_missing_entitlement, ensure_draft_world, generate_sku, validate_course_number, validate_slug_format
 )
+from course_discovery.apps.publisher.choices import InternalUserRole
+from course_discovery.apps.publisher.models import OrganizationUserRole
 from course_discovery.apps.publisher.utils import is_publisher_user
 
 logger = logging.getLogger(__name__)
@@ -84,6 +89,149 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
     # Explicitly support PageNumberPagination and LimitOffsetPagination. Future
     # versions of this API should only support the system default, PageNumberPagination.
     pagination_class = ProxiedPagination
+
+    EXPORT_CSV_HEADERS = [
+        'Course Name',
+        'Publisher URL',
+        'Course Number / Key',
+        'Course Run Key',
+        'UUID',
+        'Status',
+        'Course Editors',
+        'Organization Key',
+        'Project Coordinator',
+    ]
+
+    EXPORT_STATUS_DISPLAY_MAP = {
+        CourseRunStatus.Unpublished: 'Unsubmitted',
+        CourseRunStatus.LegalReview: 'In review',
+        CourseRunStatus.InternalReview: 'In review',
+        CourseRunStatus.Reviewed: 'Scheduled',
+        CourseRunStatus.Published: 'Published',
+        'archived': 'Archived',
+    }
+
+    @staticmethod
+    def _csv_line(row):
+        def escape_csv_cell(value):
+            if isinstance(value, str):
+                stripped_value = value.lstrip()
+                if stripped_value and stripped_value[0] in ('=', '+', '-', '@'):
+                    return "'" + value
+                return value
+            return value
+
+        csv_buffer = StringIO()
+        csv_writer = writer(csv_buffer)
+        csv_writer.writerow([escape_csv_cell(v) for v in row])
+        return csv_buffer.getvalue()
+
+    @staticmethod
+    def _publisher_course_url(course):
+        if not course.partner.publisher_url:
+            return ''
+
+        return '{base}/courses/{uuid}'.format(
+            base=course.partner.publisher_url.rstrip('/'),
+            uuid=course.uuid,
+        )
+
+    @staticmethod
+    def _authoring_organization(course):
+        authoring_organizations = list(course.authoring_organizations.all())
+        return authoring_organizations[0] if authoring_organizations else None
+
+    @staticmethod
+    def _project_coordinator_name(organization):
+        if not organization:
+            return ''
+
+        project_coordinators = list(organization.organization_user_roles.all())
+        if not project_coordinators:
+            return ''
+
+        coordinator = project_coordinators[0].user
+        return coordinator.get_full_name() or coordinator.username
+
+    def _csv_row(self, serialized_course, publisher_url, organization_key='', project_coordinator=''):
+        # We use a pipe delimiter for multi-valued cells so values remain readable while
+        # still being unambiguous when opened in spreadsheet tools.
+        course_run_keys = ' | '.join(serialized_course.get('course_run_keys', []))
+        course_statuses = ' | '.join(
+            self.EXPORT_STATUS_DISPLAY_MAP.get(status, status)
+            for status in serialized_course.get('course_run_statuses', [])
+        )
+        course_editors = ' | '.join(
+            editor.get('user', {}).get('full_name', '')
+            for editor in serialized_course.get('editors', [])
+            if editor.get('user', {}).get('full_name')
+        )
+
+        return [
+            serialized_course.get('title') or '',
+            publisher_url,
+            serialized_course.get('key_for_reruns') or serialized_course.get('key') or '',
+            course_run_keys,
+            serialized_course.get('uuid') or '',
+            course_statuses,
+            course_editors,
+            organization_key,
+            project_coordinator,
+        ]
+
+    @staticmethod
+    def _iterate_queryset_in_chunks(queryset, chunk_size=500):
+        """Efficiently iterate through a queryset in bounded chunks."""
+        offset = 0
+        while True:
+            chunk = list(queryset[offset:offset + chunk_size])
+            if not chunk:
+                break
+            yield chunk
+            offset += chunk_size
+
+    @action(detail=False, methods=['get'])
+    def csv(self, request):
+        filtered_queryset = self.filter_queryset(self.get_queryset()).prefetch_related(
+            Prefetch(
+                'authoring_organizations__organization_user_roles',
+                queryset=OrganizationUserRole.objects.filter(
+                    role=InternalUserRole.ProjectCoordinator.value,
+                ).select_related('user').order_by('pk'),
+            )
+        )
+
+        def generate_csv_lines():
+            yield self._csv_line(self.EXPORT_CSV_HEADERS)
+            for courses_chunk in self._iterate_queryset_in_chunks(filtered_queryset):
+                # Serialize only the current chunk
+                csv_serialized_chunk = self.get_serializer(courses_chunk, many=True).data
+
+                # Build metadata for only the current chunk
+                chunk_metadata_by_uuid = {}
+                for course in courses_chunk:
+                    authoring_organization = self._authoring_organization(course)
+                    chunk_metadata_by_uuid[str(course.uuid)] = {
+                        'publisher_url': self._publisher_course_url(course),
+                        'organization_key': authoring_organization.key if authoring_organization else '',
+                        'project_coordinator': self._project_coordinator_name(authoring_organization),
+                    }
+
+                # Yield rows for this chunk
+                for serialized_course in csv_serialized_chunk:
+                    course_metadata = chunk_metadata_by_uuid.get(serialized_course.get('uuid'), {})
+                    yield self._csv_line(
+                        self._csv_row(
+                            serialized_course,
+                            course_metadata.get('publisher_url', ''),
+                            course_metadata.get('organization_key', ''),
+                            course_metadata.get('project_coordinator', ''),
+                        )
+                    )
+
+        response = StreamingHttpResponse(generate_csv_lines(), content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="publisher_courses.csv"'
+        return response
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())

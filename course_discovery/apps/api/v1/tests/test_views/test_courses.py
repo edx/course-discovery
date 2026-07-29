@@ -1,4 +1,6 @@
+import csv
 import datetime
+from io import StringIO
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -20,8 +22,9 @@ from waffle.testutils import override_switch
 
 from course_discovery.apps.api.v1.exceptions import EditableAndQUnsupported
 from course_discovery.apps.api.v1.tests.test_views.mixins import APITestCase, OAuth2Mixin, SerializationMixin
+from course_discovery.apps.api.v1.views.courses import CourseViewSet
 from course_discovery.apps.api.v1.views.courses import logger as course_logger
-from course_discovery.apps.core.tests.factories import USER_PASSWORD, UserFactory
+from course_discovery.apps.core.tests.factories import USER_PASSWORD, PartnerFactory, UserFactory
 from course_discovery.apps.core.tests.mixins import ElasticsearchTestMixin
 from course_discovery.apps.core.utils import serialize_datetime
 from course_discovery.apps.course_metadata.choices import CourseRunStatus, ProgramStatus
@@ -41,7 +44,8 @@ from course_discovery.apps.course_metadata.tests.factories import (
 )
 from course_discovery.apps.course_metadata.toggles import IS_SUBDIRECTORY_SLUG_FORMAT_ENABLED
 from course_discovery.apps.course_metadata.utils import data_modified_timestamp_update, ensure_draft_world
-from course_discovery.apps.publisher.tests.factories import OrganizationExtensionFactory
+from course_discovery.apps.publisher.choices import InternalUserRole
+from course_discovery.apps.publisher.tests.factories import OrganizationExtensionFactory, OrganizationUserRoleFactory
 
 
 @ddt.ddt
@@ -2736,3 +2740,443 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
             url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
             response = self.client.get(url)
             assert response.status_code == 200
+
+
+@pytest.mark.usefixtures('django_cache')
+class CourseCsvExportViewSetTests(OAuth2Mixin, APITestCase):
+    CSV_HEADERS = [
+        'Course Name',
+        'Publisher URL',
+        'Course Number / Key',
+        'Course Run Key',
+        'UUID',
+        'Status',
+        'Course Editors',
+        'Organization Key',
+        'Project Coordinator',
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.mock_access_token()
+        self.user = UserFactory(is_staff=True)
+        self.request.user = self.user
+        self.client.login(username=self.user.username, password=USER_PASSWORD)
+        self.audit_type = CourseType.objects.get(slug=CourseType.AUDIT)
+
+    def tearDown(self):
+        super().tearDown()
+        self.client.logout()
+
+    def _csv_url(self, query_params=None):
+        url = reverse('api:v1:course-csv')
+        if query_params:
+            url = f'{url}?{urlencode(query_params)}'
+        return url
+
+    def _csv_response(self, query_params=None):
+        return self.client.get(self._csv_url(query_params))
+
+    def _parse_csv_response(self, response):
+        content = b''.join(response.streaming_content)
+        text = content.decode('utf-8')
+        reader = csv.DictReader(StringIO(text))
+        return text, list(reader)
+
+    def _assert_list_and_csv_match(self, query_params=None):
+        list_response = self.client.get(reverse('api:v1:course-list'), query_params or {})
+        csv_response = self._csv_response(query_params)
+
+        assert list_response.status_code == 200
+        assert csv_response.status_code == 200
+
+        _, rows = self._parse_csv_response(csv_response)
+        expected_uuids = [result['uuid'] for result in list_response.data['results']]
+        exported_uuids = [row['UUID'] for row in rows]
+        assert exported_uuids == expected_uuids
+
+    @staticmethod
+    def _row_by_title(rows, title):
+        return next(row for row in rows if row['Course Name'] == title)
+
+    def test_export_csv_response_headers_and_filename(self):
+        CourseFactory(partner=self.partner, type=self.audit_type)
+
+        response = self._csv_response()
+        assert response.status_code == 200
+        assert response['Content-Disposition'] == 'attachment; filename="publisher_courses.csv"'
+        assert response['Content-Type'] == 'text/csv; charset=utf-8'
+
+        csv_text, rows = self._parse_csv_response(response)
+        header_row = next(csv.reader(StringIO(csv_text)))
+        assert header_row == self.CSV_HEADERS
+        assert len(rows) == 1
+
+    def test_export_csv_streams_header_and_rows(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type, title='Streaming Course')
+
+        response = self._csv_response()
+        assert response.status_code == 200
+        assert not isinstance(response.streaming_content, list)
+
+        stream_iter = iter(response.streaming_content)
+        header_line = next(stream_iter).decode('utf-8')
+        row_line = next(stream_iter).decode('utf-8')
+
+        # Accessing this helper intentionally keeps expected line formatting aligned with production behavior.
+        assert header_line == CourseViewSet._csv_line(self.CSV_HEADERS)  # pylint: disable=protected-access
+        assert str(course.uuid) in row_line
+        assert 'Streaming Course' in row_line
+
+    def test_export_csv_no_filters_matches_list(self):
+        CourseFactory(partner=self.partner, type=self.audit_type)
+        self._assert_list_and_csv_match()
+
+    def test_export_csv_published_filter_matches_list(self):
+        course = ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type))
+        CourseRunFactory(course=course, draft=True, status=CourseRunStatus.Published)
+        self._assert_list_and_csv_match({'editable': 1, 'course_run_statuses': 'published'})
+
+    def test_export_csv_review_filter_matches_list(self):
+        course = ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type))
+        CourseRunFactory(course=course, draft=True, status=CourseRunStatus.LegalReview)
+        self._assert_list_and_csv_match({'editable': 1, 'course_run_statuses': 'in_review'})
+
+    def test_export_csv_editor_filter_matches_list(self):
+        course = ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type))
+        editor_user = UserFactory()
+        CourseEditorFactory(user=editor_user, course=course)
+        self._assert_list_and_csv_match({'editable': 1, 'editors': str(editor_user.id)})
+
+    def test_export_csv_search_filter_matches_list(self):
+        ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type, title='Unique Search Value'))
+        ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type, title='Different Title'))
+
+        self._assert_list_and_csv_match({'editable': 1, 'pubq': 'Unique Search Value'})
+
+    def test_export_csv_keys_filter_matches_list(self):
+        course = ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type, key='OrgX+FILTER123'))
+        ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type, key='OrgY+FILTER456'))
+
+        self._assert_list_and_csv_match({'editable': 1, 'keys': course.key})
+
+    def test_export_csv_uuids_filter_matches_list(self):
+        course = ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type))
+        ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type))
+
+        self._assert_list_and_csv_match({'editable': 1, 'uuids': str(course.uuid)})
+
+    def test_export_csv_multiple_filters_combined_matches_list(self):
+        course = ensure_draft_world(CourseFactory(
+            partner=self.partner,
+            type=self.audit_type,
+            title='Combined Filter Course',
+            key='edX+CombinedFilterKey',
+        ))
+        editor_user = UserFactory()
+        CourseEditorFactory(user=editor_user, course=course)
+        CourseRunFactory(course=course, draft=True, status=CourseRunStatus.Published)
+
+        self._assert_list_and_csv_match({
+            'editable': 1,
+            'pubq': 'CombinedFilter',
+            'course_run_statuses': 'published',
+            'editors': str(editor_user.id),
+            'ordering': '-title',
+            'course_type': 'open-courses',
+        })
+
+    def test_export_csv_partner_scope(self):
+        CourseFactory(partner=self.partner, type=self.audit_type, title='Default Partner Course')
+        other_partner = PartnerFactory()
+        CourseFactory(partner=other_partner, type=self.audit_type, title='Other Partner Course')
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        exported_titles = [row['Course Name'] for row in rows]
+
+        assert 'Default Partner Course' in exported_titles
+        assert 'Other Partner Course' not in exported_titles
+
+    def test_export_csv_empty_results(self):
+        ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type, title='Non Matching Title'))
+
+        response = self._csv_response({'editable': 1, 'pubq': 'NoMatchExpected'})
+        csv_text, rows = self._parse_csv_response(response)
+
+        assert response.status_code == 200
+        assert len(rows) == 0
+        header_row = next(csv.reader(StringIO(csv_text)))
+        assert header_row == self.CSV_HEADERS
+
+    def test_export_csv_course_without_editor(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type)
+        course.editors.all().delete()
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        row = rows[0]
+        assert row['UUID'] == str(course.uuid)
+        assert row['Course Editors'] == ''
+
+    def test_export_csv_course_without_course_runs(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type)
+        course.course_runs.all().delete()
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        row = rows[0]
+        assert row['UUID'] == str(course.uuid)
+        assert row['Course Run Key'] == ''
+        assert row['Status'] == ''
+
+    def test_export_csv_multiple_editors_and_runs(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type)
+        course.course_runs.all().delete()
+
+        editor1 = UserFactory(full_name='Editor One')
+        editor2 = UserFactory(full_name='Editor Two')
+        CourseEditorFactory(user=editor1, course=course)
+        CourseEditorFactory(user=editor2, course=course)
+
+        run1 = CourseRunFactory(course=course, status=CourseRunStatus.Published)
+        run2 = CourseRunFactory(course=course, status=CourseRunStatus.Unpublished)
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        row = rows[0]
+        assert set(row['Course Run Key'].split(' | ')) == {run1.key, run2.key}
+        assert set(row['Course Editors'].split(' | ')) == {'Editor One', 'Editor Two'}
+
+    def test_export_csv_special_characters_utf8(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type, title='Café, Niño "Intro"')
+
+        response = self._csv_response()
+        csv_text, rows = self._parse_csv_response(response)
+
+        assert 'Café' in csv_text
+        row = rows[0]
+        assert row['UUID'] == str(course.uuid)
+        assert row['Course Name'] == 'Café, Niño "Intro"'
+
+    def test_export_csv_large_dataset(self):
+        CourseFactory.create_batch(120, partner=self.partner, type=self.audit_type)
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        assert len(rows) == 120
+
+    def test_export_csv_returns_all_matching_courses_when_ui_is_paginated(self):
+        CourseFactory.create_batch(107, partner=self.partner, type=self.audit_type)
+
+        _, rows = self._parse_csv_response(self._csv_response({'page': 1, 'page_size': 50}))
+
+        assert len(rows) == 107
+
+    def test_export_csv_ignores_pagination_params(self):
+        CourseFactory.create_batch(12, partner=self.partner, type=self.audit_type)
+
+        _, rows_no_page = self._parse_csv_response(self._csv_response())
+        _, rows_with_page = self._parse_csv_response(self._csv_response({'page': 2, 'page_size': 2}))
+        _, rows_with_limit = self._parse_csv_response(self._csv_response({'limit': 3, 'offset': 3}))
+
+        assert len(rows_no_page) == 12
+        assert len(rows_with_page) == 12
+        assert len(rows_with_limit) == 12
+
+        uuids_no_page = [row['UUID'] for row in rows_no_page]
+        assert [row['UUID'] for row in rows_with_page] == uuids_no_page
+        assert [row['UUID'] for row in rows_with_limit] == uuids_no_page
+
+    def test_export_csv_status_labels_match_publisher_display(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type)
+        course.course_runs.all().delete()
+
+        CourseRunFactory(course=course, status=CourseRunStatus.Published)
+        CourseRunFactory(course=course, status=CourseRunStatus.Reviewed)
+        CourseRunFactory(course=course, status=CourseRunStatus.InternalReview)
+        CourseRunFactory(
+            course=course,
+            status=CourseRunStatus.Unpublished,
+            end=datetime.datetime.now(pytz.UTC) - datetime.timedelta(days=1),
+        )
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        exported_statuses = set(rows[0]['Status'].split(' | '))
+        assert exported_statuses == {'Published', 'Scheduled', 'In review', 'Archived'}
+
+    def test_export_csv_column_mappings(self):
+        self.partner.publisher_url = 'https://publisher.example.com/'
+        self.partner.save()
+        organization = OrganizationFactory(key='edX', partner=self.partner)
+        project_coordinator = UserFactory(full_name='Mapped Project Coordinator')
+        OrganizationUserRoleFactory(
+            user=project_coordinator,
+            organization=organization,
+            role=InternalUserRole.ProjectCoordinator.value,
+        )
+
+        course = CourseFactory(
+            partner=self.partner,
+            type=self.audit_type,
+            title='Mapped Course Name',
+            key='edX+KEY101',
+            key_for_reruns='edX+RERUN101',
+        )
+        course.course_runs.all().delete()
+        course.authoring_organizations.set([organization])
+        run = CourseRunFactory(course=course, status=CourseRunStatus.Published)
+        editor = UserFactory(full_name='Mapped Editor')
+        CourseEditorFactory(user=editor, course=course)
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        row = rows[0]
+
+        assert row['Course Name'] == 'Mapped Course Name'
+        assert row['Publisher URL'] == f'https://publisher.example.com/courses/{course.uuid}'
+        assert row['Course Number / Key'] == 'edX+RERUN101'
+        assert row['Course Run Key'] == run.key
+        assert row['UUID'] == str(course.uuid)
+        assert row['Status'] == 'Published'
+        assert row['Course Editors'] == 'Mapped Editor'
+        assert row['Organization Key'] == 'edX'
+        assert row['Project Coordinator'] == 'Mapped Project Coordinator'
+
+    def test_export_csv_blanks_organization_fields_without_authoring_organization(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type, title='No Organization Course')
+        course.authoring_organizations.clear()
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        row = self._row_by_title(rows, 'No Organization Course')
+
+        assert row['Organization Key'] == ''
+        assert row['Project Coordinator'] == ''
+
+    def test_export_csv_blanks_project_coordinator_without_matching_role(self):
+        organization = OrganizationFactory(key='OrgWithoutPc', partner=self.partner)
+        course = CourseFactory(partner=self.partner, type=self.audit_type, title='No Coordinator Course')
+        course.authoring_organizations.set([organization])
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        row = self._row_by_title(rows, 'No Coordinator Course')
+
+        assert row['Organization Key'] == 'OrgWithoutPc'
+        assert row['Project Coordinator'] == ''
+
+    def test_export_csv_exports_correct_organization_key_and_project_coordinator_per_course(self):
+        organization_one = OrganizationFactory(key='OrgOne', partner=self.partner)
+        organization_two = OrganizationFactory(key='OrgTwo', partner=self.partner)
+        coordinator_one = UserFactory(full_name='Coordinator One')
+        coordinator_two = UserFactory(full_name='Coordinator Two')
+        OrganizationUserRoleFactory(
+            user=coordinator_one,
+            organization=organization_one,
+            role=InternalUserRole.ProjectCoordinator.value,
+        )
+        OrganizationUserRoleFactory(
+            user=coordinator_two,
+            organization=organization_two,
+            role=InternalUserRole.ProjectCoordinator.value,
+        )
+
+        course_one = CourseFactory(partner=self.partner, type=self.audit_type, title='Course One')
+        course_two = CourseFactory(partner=self.partner, type=self.audit_type, title='Course Two')
+        course_one.authoring_organizations.set([organization_one])
+        course_two.authoring_organizations.set([organization_two])
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        row_one = self._row_by_title(rows, 'Course One')
+        row_two = self._row_by_title(rows, 'Course Two')
+
+        assert row_one['Organization Key'] == 'OrgOne'
+        assert row_one['Project Coordinator'] == 'Coordinator One'
+        assert row_two['Organization Key'] == 'OrgTwo'
+        assert row_two['Project Coordinator'] == 'Coordinator Two'
+
+    def test_csv_line_escapes_formula_like_values(self):
+        # Accessing the helper directly is intentional here to test CSV escaping behavior.
+        csv_line = CourseViewSet._csv_line([  # pylint: disable=protected-access
+            '=SUM(A1:A2)',
+            '+123',
+            '-123',
+            '@command',
+            ' =SUM(A1:A2)',
+            '   +123',
+            '\t-123',
+            '  @command',
+            'How Bulbs Work?',
+        ])
+
+        row = next(csv.reader(StringIO(csv_line)))
+
+        assert row == [
+            "'=SUM(A1:A2)",
+            "'+123",
+            "'-123",
+            "'@command",
+            "' =SUM(A1:A2)",
+            "'   +123",
+            "'\t-123",
+            "'  @command",
+            'How Bulbs Work?',
+        ]
+
+    def test_export_csv_escapes_formula_like_course_values(self):
+        organization = OrganizationFactory(key='SafeOrg', partner=self.partner)
+        coordinator = UserFactory(full_name='@coordinator')
+        OrganizationUserRoleFactory(
+            user=coordinator,
+            organization=organization,
+            role=InternalUserRole.ProjectCoordinator.value,
+        )
+        course = CourseFactory(
+            partner=self.partner,
+            type=self.audit_type,
+            title='=SUM(A1:A2)',
+            key_for_reruns='+123',
+        )
+        course.authoring_organizations.set([organization])
+        course.editors.all().delete()
+        CourseEditorFactory(user=UserFactory(full_name='@editor'), course=course)
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        row = self._row_by_title(rows, "'=SUM(A1:A2)")
+
+        assert row['Course Name'] == "'=SUM(A1:A2)"
+        assert row['Course Number / Key'] == "'+123"
+        assert row['Course Editors'] == "'@editor"
+        assert row['Project Coordinator'] == "'@coordinator"
+
+    def test_export_csv_escapes_leading_whitespace_formula_values(self):
+        organization = OrganizationFactory(key='SafeWhitespaceOrg', partner=self.partner)
+        coordinator = UserFactory(full_name='  @coordinator')
+        OrganizationUserRoleFactory(
+            user=coordinator,
+            organization=organization,
+            role=InternalUserRole.ProjectCoordinator.value,
+        )
+        course = CourseFactory(
+            partner=self.partner,
+            type=self.audit_type,
+            title=' =SUM(A1:A2)',
+            key_for_reruns='\t+123',
+        )
+        course.authoring_organizations.set([organization])
+        course.editors.all().delete()
+        CourseEditorFactory(user=UserFactory(full_name='  @editor'), course=course)
+
+        _, rows = self._parse_csv_response(self._csv_response())
+        row = self._row_by_title(rows, "' =SUM(A1:A2)")
+
+        assert row['Course Name'] == "' =SUM(A1:A2)"
+        assert row['Course Number / Key'] == "'\t+123"
+        assert row['Course Editors'] == "'  @editor"
+        assert row['Project Coordinator'] == "'  @coordinator"
+
+    def test_export_csv_requires_authentication(self):
+        self.client.logout()
+        response = self._csv_response({'editable': 1})
+        assert response.status_code == 401
+
+    def test_export_csv_editable_permission_enforced(self):
+        self.client.logout()
+        normal_user = UserFactory(is_staff=False)
+        self.client.login(username=normal_user.username, password=USER_PASSWORD)
+
+        response = self._csv_response({'editable': 1})
+        assert response.status_code == 403
