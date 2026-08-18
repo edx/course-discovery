@@ -592,15 +592,24 @@ class TestCourseLoader(CSVLoaderMixin, OAuth2Mixin, APITestCase):
         assert course_run.min_effort is None
         assert loader.ingestion_summary["success_count"] == 1
 
-    def test_course_loader_partial_updates_missing_both_identifiers(self, mock_jwt_decode_handler):  # pylint: disable=unused-argument
+    @data(
+        ("", ""),
+        ("   ", "   "),
+        ("", "   "),
+        ("   ", ""),
+    )
+    @unpack
+    def test_course_loader_partial_updates_missing_both_identifiers(
+        self, course_key, course_run_key, mock_jwt_decode_handler  # pylint: disable=unused-argument
+    ):
         """
-        Verify partial updates fail fast when both course_key and course_run_key are missing.
+        Verify partial updates fail fast when both course_key and course_run_key are missing or whitespace-only.
         """
         self.create_new_course()
 
         csv_data = {
-            "Course Key": "",
-            "Course Run Key": "",
+            "Course Key": course_key,
+            "Course Run Key": course_run_key,
             "Long Description": "Should fail due to missing identifiers",
         }
 
