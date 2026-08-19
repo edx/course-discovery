@@ -592,6 +592,72 @@ class TestCourseLoader(CSVLoaderMixin, OAuth2Mixin, APITestCase):
         assert course_run.min_effort is None
         assert loader.ingestion_summary["success_count"] == 1
 
+    @data(
+        ("", ""),
+        ("   ", "   "),
+        ("", "   "),
+        ("   ", ""),
+    )
+    @unpack
+    def test_course_loader_partial_updates_missing_both_identifiers(
+        self, course_key, course_run_key, mock_jwt_decode_handler  # pylint: disable=unused-argument
+    ):
+        """
+        Verify partial updates fail fast when both course_key and course_run_key are missing or whitespace-only.
+        """
+        self.create_new_course()
+
+        csv_data = {
+            "Course Key": course_key,
+            "Course Run Key": course_run_key,
+            "Long Description": "Should fail due to missing identifiers",
+        }
+
+        loader, _ = self.perform_partial_updates(csv_data)
+
+        assert loader.ingestion_summary["failure_count"] == 1
+        assert loader.ingestion_summary["success_count"] == 0
+        assert (
+            "Missing required identifiers for partial update: provide course_key or course_run_key."
+            in loader.error_logs["MISSING_REQUIRED_DATA"][0]
+        )
+
+    def test_course_loader_partial_updates_truncated_row_does_not_crash(self, mock_jwt_decode_handler):  # pylint: disable=unused-argument
+        """
+        Verify partial updates handle truncated CSV rows where DictReader returns None for missing trailing fields.
+        """
+        self.create_new_course()
+
+        with NamedTemporaryFile() as csv:
+            csv.write(
+                b"Course Key,Course Run Key,Long Description\n"
+                b"edx+csv-123\n"
+            )
+            csv.seek(0)
+
+            with LogCapture() as log_capture:
+                with mock.patch.object(
+                        CourseLoader,
+                        'call_course_api',
+                        self.mock_call_course_api
+                ):
+                    loader = CourseLoader(
+                        self.partner, csv_path=csv.name,
+                        product_source=self.source.slug,
+                        task_type=BulkOperationType.PartialUpdate
+                    )
+                    loader.ingest()
+                    log_capture.check_present(
+                        (
+                            LOGGER_PATH,
+                            'INFO',
+                            f"Initiating Course Loader for {BulkOperationType.PartialUpdate}"
+                        )
+                    )
+
+        assert loader.ingestion_summary["failure_count"] == 0
+        assert loader.ingestion_summary["success_count"] == 1
+
     @data(("true", True), ("false", False))
     @unpack
     def test_course_loader_partial_updates_b2c_subscription_inclusion(

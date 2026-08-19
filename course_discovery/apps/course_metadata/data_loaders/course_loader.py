@@ -490,9 +490,19 @@ class CourseLoader(AbstractDataLoader, DataLoaderMixin):
         """
         for row in self.reader:
             row = self.transform_dict_keys(row)
-            course_key = row.get('course_key', '')
-            course_run_key = row.get('course_run_key', '')
+            course_key = (row.get('course_key') or '').strip()
+            course_run_key = (row.get('course_run_key') or '').strip()
+            row['course_key'] = course_key
+            row['course_run_key'] = course_run_key
             logger.info(f'Starting partial update flow for course: {course_key} and course_run: {course_run_key}')
+
+            # Partial updates must identify a target by either course_key or course_run_key.
+            if not course_key and not course_run_key:
+                self.log_ingestion_error(
+                    CSVIngestionErrors.MISSING_REQUIRED_DATA,
+                    'Missing required identifiers for partial update: provide course_key or course_run_key.'
+                )
+                continue
 
             try:
                 course, course_run = self.extract_course_and_course_run(row)
