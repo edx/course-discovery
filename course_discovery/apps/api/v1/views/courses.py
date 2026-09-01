@@ -91,15 +91,15 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
     pagination_class = ProxiedPagination
 
     EXPORT_CSV_HEADERS = [
-        'Course Name',
-        'Publisher URL',
-        'Course Number / Key',
-        'Course Run Key',
-        'UUID',
-        'Status',
-        'Course Editors',
         'Organization Key',
         'Project Coordinator',
+        'Course Name',
+        'Course Number/Key',
+        'Course Run Key',
+        'Status',
+        'Publisher Link',
+        'UUID',
+        'Course Editors',
     ]
 
     EXPORT_STATUS_DISPLAY_MAP = {
@@ -168,15 +168,15 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
         )
 
         return [
-            serialized_course.get('title') or '',
-            publisher_url,
-            serialized_course.get('key_for_reruns') or serialized_course.get('key') or '',
-            course_run_keys,
-            serialized_course.get('uuid') or '',
-            course_statuses,
-            course_editors,
             organization_key,
             project_coordinator,
+            serialized_course.get('title') or '',
+            serialized_course.get('key_for_reruns') or serialized_course.get('key') or '',
+            course_run_keys,
+            course_statuses,
+            publisher_url,
+            serialized_course.get('uuid') or '',
+            course_editors,
         ]
 
     @staticmethod
@@ -192,14 +192,17 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def csv(self, request):
-        filtered_queryset = self.filter_queryset(self.get_queryset()).prefetch_related(
+        course_run_statuses = request.query_params.get('course_run_statuses')
+        filtered_queryset = self.filter_queryset(self.get_queryset(course_run_statuses=course_run_statuses))
+        prefetches = [
             Prefetch(
                 'authoring_organizations__organization_user_roles',
                 queryset=OrganizationUserRole.objects.filter(
                     role=InternalUserRole.ProjectCoordinator.value,
                 ).select_related('user').order_by('pk'),
             )
-        )
+        ]
+        filtered_queryset = filtered_queryset.prefetch_related(*prefetches)
 
         def generate_csv_lines():
             yield self._csv_line(self.EXPORT_CSV_HEADERS)
@@ -251,7 +254,7 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
 
         return obj
 
-    def get_queryset(self):
+    def get_queryset(self, course_run_statuses=None):
         partner = self.request.site.partner
         q = self.request.query_params.get('q')
         # We don't want to create an additional elasticsearch index right now for draft courses, so we
@@ -277,6 +280,11 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
         if q:
             queryset = Course.search(q, queryset=queryset)
             course_runs = CourseRun.objects.exclude(restricted_run__restriction_type__in=excluded_restriction_types)
+            if course_run_statuses:
+                course_runs = course_runs.filter(
+                    filters.get_course_run_status_query(course_run_statuses),
+                    hidden=False,
+                )
             queryset = self.get_serializer_class().prefetch_queryset(
                 queryset=queryset, partner=partner, course_runs=course_runs
             )
@@ -304,6 +312,11 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
                 programs = Program.objects.exclude(status=ProgramStatus.Deleted)
 
             course_runs = course_runs.exclude(restricted_run__restriction_type__in=excluded_restriction_types)
+            if course_run_statuses:
+                course_runs = course_runs.filter(
+                    filters.get_course_run_status_query(course_run_statuses),
+                    hidden=False,
+                )
             queryset = self.get_serializer_class().prefetch_queryset(
                 queryset=queryset,
                 course_runs=course_runs,

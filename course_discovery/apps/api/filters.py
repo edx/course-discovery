@@ -84,6 +84,39 @@ class FilterSetMixin:
         return self._apply_filter(name, queryset, value)
 
 
+def get_course_run_status_query(value, prefix=''):
+    """Build the course-run status predicate used by Publisher course filters."""
+    statuses = {status.strip() for status in value.split(',') if status.strip()}
+    or_queries = []
+    field_prefix = f'{prefix}__' if prefix else ''
+
+    now = datetime.datetime.now(pytz.UTC)
+    if 'in_review' in statuses:  # any of our review statuses
+        statuses.remove('in_review')
+        statuses.add(CourseRunStatus.LegalReview)
+        statuses.add(CourseRunStatus.InternalReview)
+
+    if 'unsubmitted' in statuses:  # unpublished and unarchived
+        statuses.remove('unsubmitted')
+        # "is not archived" logic stolen from CourseRun.has_ended
+        unsubmitted_query = Q(**{f'{field_prefix}status': CourseRunStatus.Unpublished})
+        unsubmitted_query &= ~Q(**{f'{field_prefix}end__lt': now})
+        or_queries.append(unsubmitted_query)
+
+    if 'archived' in statuses:  # unpublished and archived
+        statuses.remove('archived')
+        or_queries.append(Q(**{
+            f'{field_prefix}status': CourseRunStatus.Unpublished,
+            f'{field_prefix}end__lt': now,
+        }))
+
+    status_check = Q(**{f'{field_prefix}status__in': statuses})
+    for query in or_queries:
+        status_check |= query
+
+    return status_check
+
+
 class CourseFilter(filters.FilterSet):
     keys = CharListFilter(field_name='key', lookup_expr='in')
     uuids = UUIDListFilter()
@@ -98,28 +131,7 @@ class CourseFilter(filters.FilterSet):
         fields = ('keys', 'uuids', 'b2c_subscription_inclusion')
 
     def filter_by_course_run_statuses(self, queryset, _, value):
-        statuses = set(value.split(','))
-        or_queries = []  # a list of Q() expressions to add to our filter as alternatives to status check
-
-        now = datetime.datetime.now(pytz.UTC)
-        if 'in_review' in statuses:  # any of our review statuses
-            statuses.remove('in_review')
-            statuses.add(CourseRunStatus.LegalReview)
-            statuses.add(CourseRunStatus.InternalReview)
-
-        if 'unsubmitted' in statuses:  # unpublished and unarchived
-            statuses.remove('unsubmitted')
-            # "is not archived" logic stolen from CourseRun.has_ended
-            or_queries.append(Q(course_runs__status=CourseRunStatus.Unpublished) & ~Q(course_runs__end__lt=now))
-
-        if 'archived' in statuses:  # unpublished and archived
-            statuses.remove('archived')
-            or_queries.append(Q(course_runs__status=CourseRunStatus.Unpublished) & Q(course_runs__end__lt=now))
-
-        status_check = Q(course_runs__status__in=statuses)
-        for query in or_queries:
-            status_check |= query
-
+        status_check = get_course_run_status_query(value, prefix='course_runs')
         return queryset.filter(status_check, course_runs__hidden=False).distinct()
 
     def filter_by_course_type(self, queryset, _, value):
