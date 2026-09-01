@@ -2789,15 +2789,15 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
 @pytest.mark.usefixtures('django_cache')
 class CourseCsvExportViewSetTests(OAuth2Mixin, APITestCase):
     CSV_HEADERS = [
-        'Course Name',
-        'Publisher URL',
-        'Course Number / Key',
-        'Course Run Key',
-        'UUID',
-        'Status',
-        'Course Editors',
         'Organization Key',
         'Project Coordinator',
+        'Course Name',
+        'Course Number/Key',
+        'Course Run Key',
+        'Status',
+        'Publisher Link',
+        'UUID',
+        'Course Editors',
     ]
 
     def setUp(self):
@@ -2881,6 +2881,60 @@ class CourseCsvExportViewSetTests(OAuth2Mixin, APITestCase):
         CourseRunFactory(course=course, draft=True, status=CourseRunStatus.Published)
         self._assert_list_and_csv_match({'editable': 1, 'course_run_statuses': 'published'})
 
+    def test_export_csv_status_filter_only_includes_matching_course_runs(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type)
+        course.course_runs.all().delete()
+        matching_run = CourseRunFactory(course=course, status=CourseRunStatus.Published)
+        CourseRunFactory(course=course, status=CourseRunStatus.Published, hidden=True)
+        CourseRunFactory(course=course, status=CourseRunStatus.Unpublished)
+        CourseRunFactory(course=course, status=CourseRunStatus.LegalReview)
+
+        _, rows = self._parse_csv_response(self._csv_response({
+            'course_run_statuses': 'published',
+            'include_hidden_course_runs': 1,
+        }))
+
+        assert len(rows) == 1
+        assert rows[0]['UUID'] == str(course.uuid)
+        assert rows[0]['Course Run Key'] == matching_run.key
+        assert rows[0]['Status'] == 'Published'
+
+    def test_export_csv_multiple_status_filters_only_include_matching_course_runs(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type)
+        course.course_runs.all().delete()
+        published_run = CourseRunFactory(course=course, status=CourseRunStatus.Published)
+        review_run = CourseRunFactory(course=course, status=CourseRunStatus.LegalReview)
+        CourseRunFactory(course=course, status=CourseRunStatus.Unpublished)
+
+        _, rows = self._parse_csv_response(
+            self._csv_response({'course_run_statuses': 'published, in_review,,'})
+        )
+
+        assert len(rows) == 1
+        assert set(rows[0]['Course Run Key'].split(' | ')) == {published_run.key, review_run.key}
+        assert set(rows[0]['Status'].split(' | ')) == {'Published', 'In review'}
+
+    def test_export_csv_status_filter_excludes_courses_without_matching_runs(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type)
+        course.course_runs.all().delete()
+        CourseRunFactory(course=course, status=CourseRunStatus.Unpublished)
+
+        _, rows = self._parse_csv_response(self._csv_response({'course_run_statuses': 'published'}))
+
+        assert not rows
+
+    def test_export_csv_status_filter_includes_multiple_matching_runs(self):
+        course = CourseFactory(partner=self.partner, type=self.audit_type)
+        course.course_runs.all().delete()
+        first_matching_run = CourseRunFactory(course=course, status=CourseRunStatus.Published)
+        second_matching_run = CourseRunFactory(course=course, status=CourseRunStatus.Published)
+
+        _, rows = self._parse_csv_response(self._csv_response({'course_run_statuses': 'published'}))
+
+        assert len(rows) == 1
+        assert set(rows[0]['Course Run Key'].split(' | ')) == {first_matching_run.key, second_matching_run.key}
+        assert rows[0]['Status'] == 'Published'
+
     def test_export_csv_review_filter_matches_list(self):
         course = ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type))
         CourseRunFactory(course=course, draft=True, status=CourseRunStatus.LegalReview)
@@ -2897,6 +2951,25 @@ class CourseCsvExportViewSetTests(OAuth2Mixin, APITestCase):
         ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type, title='Different Title'))
 
         self._assert_list_and_csv_match({'editable': 1, 'pubq': 'Unique Search Value'})
+
+    @mock.patch.object(Course, 'search')
+    def test_export_csv_q_search_status_filter_only_includes_matching_runs(self, mock_course_search):
+        course = CourseFactory(partner=self.partner, type=self.audit_type, title='Python Course')
+        course.course_runs.all().delete()
+        matching_run = CourseRunFactory(course=course, status=CourseRunStatus.Published)
+        CourseRunFactory(course=course, status=CourseRunStatus.Unpublished)
+        mock_course_search.return_value = Course.objects.filter(pk=course.pk)
+
+        _, rows = self._parse_csv_response(self._csv_response({
+            'q': 'python',
+            'course_run_statuses': 'published',
+        }))
+
+        mock_course_search.assert_called_once_with('python', queryset=mock.ANY)
+        assert len(rows) == 1
+        assert rows[0]['UUID'] == str(course.uuid)
+        assert rows[0]['Course Run Key'] == matching_run.key
+        assert rows[0]['Status'] == 'Published'
 
     def test_export_csv_keys_filter_matches_list(self):
         course = ensure_draft_world(CourseFactory(partner=self.partner, type=self.audit_type, key='OrgX+FILTER123'))
@@ -3071,15 +3144,15 @@ class CourseCsvExportViewSetTests(OAuth2Mixin, APITestCase):
         _, rows = self._parse_csv_response(self._csv_response())
         row = rows[0]
 
-        assert row['Course Name'] == 'Mapped Course Name'
-        assert row['Publisher URL'] == f'https://publisher.example.com/courses/{course.uuid}'
-        assert row['Course Number / Key'] == 'edX+RERUN101'
-        assert row['Course Run Key'] == run.key
-        assert row['UUID'] == str(course.uuid)
-        assert row['Status'] == 'Published'
-        assert row['Course Editors'] == 'Mapped Editor'
         assert row['Organization Key'] == 'edX'
         assert row['Project Coordinator'] == 'Mapped Project Coordinator'
+        assert row['Course Name'] == 'Mapped Course Name'
+        assert row['Course Number/Key'] == 'edX+RERUN101'
+        assert row['Course Run Key'] == run.key
+        assert row['Status'] == 'Published'
+        assert row['Publisher Link'] == f'https://publisher.example.com/courses/{course.uuid}'
+        assert row['UUID'] == str(course.uuid)
+        assert row['Course Editors'] == 'Mapped Editor'
 
     def test_export_csv_blanks_organization_fields_without_authoring_organization(self):
         course = CourseFactory(partner=self.partner, type=self.audit_type, title='No Organization Course')
@@ -3182,7 +3255,7 @@ class CourseCsvExportViewSetTests(OAuth2Mixin, APITestCase):
         row = self._row_by_title(rows, "'=SUM(A1:A2)")
 
         assert row['Course Name'] == "'=SUM(A1:A2)"
-        assert row['Course Number / Key'] == "'+123"
+        assert row['Course Number/Key'] == "'+123"
         assert row['Course Editors'] == "'@editor"
         assert row['Project Coordinator'] == "'@coordinator"
 
@@ -3208,7 +3281,7 @@ class CourseCsvExportViewSetTests(OAuth2Mixin, APITestCase):
         row = self._row_by_title(rows, "' =SUM(A1:A2)")
 
         assert row['Course Name'] == "' =SUM(A1:A2)"
-        assert row['Course Number / Key'] == "'\t+123"
+        assert row['Course Number/Key'] == "'\t+123"
         assert row['Course Editors'] == "'  @editor"
         assert row['Project Coordinator'] == "'  @coordinator"
 
