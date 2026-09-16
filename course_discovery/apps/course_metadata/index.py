@@ -3,9 +3,7 @@ from algoliasearch_django import AlgoliaIndex, register
 from course_discovery.apps.course_metadata.algolia_models import (
     AlgoliaProxyCourse, AlgoliaProxyProduct, AlgoliaProxyProgram, SearchDefaultResultsConfiguration
 )
-from course_discovery.apps.course_metadata.contentful_utils import (
-    fetch_and_transform_bootcamp_contentful_data, fetch_and_transform_degree_contentful_data
-)
+from course_discovery.apps.course_metadata.contentful_utils import fetch_and_transform_degree_contentful_data
 
 
 class BaseProductIndex(AlgoliaIndex):
@@ -21,8 +19,7 @@ class BaseProductIndex(AlgoliaIndex):
                 'Cannot update Algolia index \'{index_name}\'. No language set'.format(index_name=self.index_name)
             )
 
-        bootcamp_contentful_data = fetch_and_transform_bootcamp_contentful_data()
-        qs1 = [AlgoliaProxyProduct(course, self.language, contentful_data=bootcamp_contentful_data)
+        qs1 = [AlgoliaProxyProduct(course, self.language)
                for course in AlgoliaProxyCourse.prefetch_queryset()]
 
         degree_contentful_data = fetch_and_transform_degree_contentful_data()
