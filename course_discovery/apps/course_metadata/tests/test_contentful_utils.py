@@ -26,6 +26,14 @@ class TestContentfulUtils(TestCase):
     Test get_data_from_contentful.
     """
 
+    def test_get_contentful_cache_key(self):
+        """
+        Only the degree content type has a cache key; anything else is uncacheable.
+        """
+        assert get_contentful_cache_key(settings.DEGREE_CONTENTFUL_CONTENT_TYPE) == 'contentful_degree_data_key'
+        assert get_contentful_cache_key('bootCampPage') is None
+        assert get_contentful_cache_key(None) is None
+
     @mock.patch('course_discovery.apps.course_metadata.contentful_utils.Client')
     def test_get_data_from_contentful(self, mock_client):
         """
