@@ -2,10 +2,12 @@
 
 ## Overview
 
-course-discovery uses the [`algoliasearch-django`](https://github.com/algolia/algoliasearch-django) library, which hooks into Django's model lifecycle to keep Algolia records in sync. The integration is entirely contained in two files:
+course-discovery uses the [`algoliasearch-django`](https://github.com/algolia/algoliasearch-django) library to push records to Algolia. Two files carry almost all of it:
 
-- `course_discovery/apps/course_metadata/algolia_models.py` — model layer
-- `course_discovery/apps/course_metadata/index.py` — index configuration
+- `course_discovery/apps/course_metadata/algolia_models.py`, the model layer
+- `course_discovery/apps/course_metadata/index.py`, index configuration and registration
+
+The rest is `algolia_forms.py` and the `SearchDefaultResultsConfiguration` admin, which manage promoted empty-query results, plus the `ALGOLIA` settings block in `settings/base.py`.
 
 ---
 
@@ -51,17 +53,19 @@ The reason for `AlgoliaProxyProduct` being a proxy of `Program` (rather than som
 
 ## What triggers index updates
 
-### Real-time (per-object)
+### Real-time (per-object): there isn't one
 
-`algoliasearch_django` installs a `post_save` signal handler on any model registered with `register()`. Because `AlgoliaProxyProduct` is what's registered, saves to that proxy would normally trigger it — but in practice, courses and programs are saved as `Course` / `Program` instances, not as `AlgoliaProxyProduct`.
+Editing a course or program does not update Algolia. Records change only on a full reindex. This surprises people, so it's worth knowing why.
 
-The real-time path works because `algoliasearch_django` also hooks `update_obj_index` via `ProductMetaIndex`, which is called explicitly in code paths that need to push a single record update. When a course or program is modified and needs to reflect in Algolia immediately, `ProductMetaIndex.update_obj_index(instance)` fans out to both `EnglishProductIndex` and `SpanishProductIndex`.
+`algoliasearch_django` installs `post_save` and `pre_delete` handlers for whatever model you pass to `register()`, which here is `AlgoliaProxyProduct`. Django sends those signals with the sender set to the class of the saved instance, so saving a `Course` or a `Program` never reaches the handler. Nothing constructs an `AlgoliaProxyProduct` and saves it either: it's built only inside `get_queryset`, and its `__init__` takes `(product, language, contentful_data)` rather than normal model kwargs.
+
+`ProductMetaIndex.update_obj_index` exists and fans out to both language indexes, but nothing in this repo calls it.
 
 ### Full reindex
 
 `BaseProductIndex.reindex_all()` triggers a complete rebuild of an index. It:
 
-1. Calls `get_queryset()`, which builds the full list of `AlgoliaProxyProduct` wrappers from `AlgoliaProxyCourse.prefetch_queryset()` and `AlgoliaProxyProgram.prefetch_queryset()` — also merging in Contentful data for bootcamps and degrees at this point.
+1. Calls `get_queryset()`, which builds the full list of `AlgoliaProxyProduct` wrappers from `AlgoliaProxyCourse.prefetch_queryset()` and `AlgoliaProxyProgram.prefetch_queryset()`, merging Contentful degree data into the program wrappers at this point. Courses get no Contentful enrichment.
 2. Pushes all records to Algolia via the parent `AlgoliaIndex.reindex_all()`.
 3. Restores query rules (empty-query promoted results from `SearchDefaultResultsConfiguration`) which a plain reindex would otherwise wipe.
 
@@ -71,6 +75,8 @@ This is invoked via the `algolia_reindex` management command provided by `algoli
 python manage.py algolia_reindex
 ```
 
+This is executed via a cronjob, see our private configuration repo for each environment's schedule.
+
 ### Index settings sync
 
 Index settings (`searchableAttributes`, `attributesForFaceting`, `customRanking`) are pushed to Algolia separately from record data, via:
@@ -79,21 +85,31 @@ Index settings (`searchableAttributes`, `attributesForFaceting`, `customRanking`
 python manage.py algolia_applysettings
 ```
 
-This must be run any time the `settings` dict on `EnglishProductIndex` or `SpanishProductIndex` changes — it does not happen automatically on deploy.
+This must be run any time the `settings` dict on `EnglishProductIndex` or `SpanishProductIndex` changes. It does not happen automatically on deploy.
+
+`algoliasearch_django` also ships `algolia_clearindex`, which empties an index without repopulating it.
 
 ---
 
 ## What controls whether a record is indexed
 
-Each proxy model implements a `should_index` property (and `should_index_spanish` for the Spanish index). `algoliasearch_django` checks these before indexing. Key exclusion conditions:
+Each proxy model implements a `should_index` property. `algoliasearch_django` checks it before indexing, via `should_index = 'should_index'` on `EnglishProductIndex` and `should_index = 'should_index_spanish'` on `SpanishProductIndex`.
 
-- Course is a draft
-- Course has no owners with logo images
-- Course has no active, non-hidden advertised run
-- Course type is in `settings.RETIRED_COURSE_TYPES`
-- Course's product source is in `settings.ALGOLIA_INDEX_EXCLUDED_SOURCES`
-- ExecEd course has `ExternalProductStatus.Archived`
-- `excluded_from_search = True` on the course or program
+A course is excluded when any of these hold:
+
+- It has no owners with logo images (`get_owners` drops organizations without one)
+- It has no advertised run, or that run is hidden
+- Its partner is not `edX`
+- It has no `active_url_slug` or no `availability_level`
+- Its type is in `settings.RETIRED_COURSE_TYPES`
+- Its product source is in `settings.ALGOLIA_INDEX_EXCLUDED_SOURCES`
+- It's an ExecEd course with `ExternalProductStatus.Archived`
+
+The Spanish index drops Boot Camps (`CourseType.BOOTCAMP_2U`) on top of everything above.
+
+Drafts never reach `should_index`: `prefetch_queryset` uses `Course.objects`, which already excludes them.
+
+`excluded_from_search` is a field on `Course` and `Program`, but nothing in the Algolia path reads it; it feeds the Elasticsearch program index. For degrees, a separate `excluded_from_search` value does reach Algolia, sourced from Contentful and nested under `contentful_fields`.
 
 ---
 
@@ -103,13 +119,12 @@ Each proxy model implements a `should_index` property (and `should_index_spanish
 |---|---|---|
 | `ALGOLIA['APPLICATION_ID']` | `settings/base.py` | Algolia app credential |
 | `ALGOLIA['API_KEY']` | `settings/base.py` | Algolia admin API key |
-| `ALGOLIA['TAXONOMY_INDEX_NAME']` | `settings/base.py` | Separate skills/taxonomy index (not the product index) |
+| `ALGOLIA['TAXONOMY_INDEX_NAME']` | `settings/base.py` | Separate skills/taxonomy index, read by taxonomy-connector. Nothing in this repo reads it |
 | `ALGOLIA_INDEX_EXCLUDED_SOURCES` | `settings/base.py` | List of product source slugs to exclude from indexing entirely (e.g. Emeritus) |
 | `RETIRED_COURSE_TYPES` | `settings/base.py` | Course type slugs that should never be indexed |
 | `index_name` on `EnglishProductIndex` | `index.py` | Algolia index name — `"product"` |
 | `index_name` on `SpanishProductIndex` | `index.py` | Algolia index name — `"spanish_product"` |
 | `SearchDefaultResultsConfiguration` | Django admin / DB | Promoted courses and programs for empty-query rules, per index name |
-| `excluded_from_search` | Course/Program model field | Per-record toggle, manageable in Django admin |
 
 ## Adding a new Course field to the Algolia index
 
@@ -117,7 +132,7 @@ Each proxy model implements a `should_index` property (and `should_index_spanish
 Add a `BooleanField` (or whatever type) to `Course` in `models.py` and generate a migration. Already done for `b2c_subscription_inclusion`.
 
 ### 2. `AlgoliaProxyCourse` in `algolia_models.py` (optional)
-Add a `@property` *only* if you need to transform or rename the value. For a simple DB field where the name doesn't conflict with anything on the parent `Course`/`Program` model, you can skip this — Django's MRO will find it directly. If the name *does* exist on `Program` (the base of `AlgoliaProxyProduct`), you need the proxy property to override it.
+Add a `@property` *only* if you need to transform or rename the value. A plain DB field needs nothing here: `delegate_attributes` reads it off the course with `getattr(self.product, name, None)`.
 
 ### 3. `AlgoliaProxyProgram` in `algolia_models.py`
 Add an explicit `@property` returning a sensible default (`False`, `None`, `[]`, etc.) so programs don't accidentally inherit a `Program` model attribute that happens to have the same name.
