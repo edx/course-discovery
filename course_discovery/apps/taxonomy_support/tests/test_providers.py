@@ -24,11 +24,13 @@ same repository, so whenever a new dependency (e.g. a new method or a new field 
 provider its validator is also updated in the same pull request. This ensures that the provider implementation in
 discovery and its interface in taxonomy are always in sync.
 """
+from datetime import timedelta
 from unittest import mock
 from urllib.parse import urljoin
 
 from django.conf import settings
 from django.test import TestCase
+from django.utils.timezone import now
 from taxonomy.providers import CourseRunContent
 from taxonomy.providers.utils import (
     get_course_metadata_provider, get_course_run_metadata_provider, get_xblock_metadata_provider
@@ -41,6 +43,7 @@ from taxonomy.validators import (
 from course_discovery.apps.core.tests.factories import PartnerFactory
 from course_discovery.apps.core.tests.mixins import LMSAPIClientMixin
 from course_discovery.apps.course_metadata.choices import CourseRunStatus
+from course_discovery.apps.course_metadata.models import Course
 from course_discovery.apps.course_metadata.tests.factories import (
     CourseFactory, CourseRunFactory, OrganizationFactory, ProgramFactory
 )
@@ -177,3 +180,27 @@ class DiscoveryCourseMetadataProviderTests(TestCase):
         """
         assert self.course_metadata_provider.is_valid_organization(self.organization.key) is True
         assert self.course_metadata_provider.is_valid_organization('blah blah') is False
+
+    @mock.patch('course_discovery.apps.taxonomy_support.providers.fetch_and_transform_bootcamp_contentful_data',
+                return_value={})
+    def test_get_recently_created_courses(self, _contentful_data):
+        """
+        Verify that `get_recently_created_courses` only returns courses created after the given
+        timestamp, and excludes drafts.
+        """
+        old_course = CourseFactory()
+        Course.objects.filter(pk=old_course.pk).update(created=now() - timedelta(days=30))
+
+        recent_course = CourseFactory()
+        Course.objects.filter(pk=recent_course.pk).update(created=now() - timedelta(days=1))
+
+        cutoff = now() - timedelta(days=7)
+        result_keys = {
+            course['key']
+            for course in self.course_metadata_provider.get_recently_created_courses(created_after=cutoff)
+        }
+
+        assert recent_course.key in result_keys
+        assert old_course.key not in result_keys
+        # self.course was created in setUp(), "now" -- also expected to be included.
+        assert self.course.key in result_keys
