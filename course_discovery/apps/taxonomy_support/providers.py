@@ -72,6 +72,26 @@ class DiscoveryCourseMetadataProvider(CourseMetadataProvider):
                     ),
                 }
 
+    @staticmethod
+    def get_recently_created_courses(created_after):  # lint-amnesty, pylint: disable=arguments-differ
+        """
+        Get iterator for courses created after the given timestamp (excluding drafts).
+        """
+        recent_courses = Course.objects.filter(created__gte=created_after)
+        contentful_data = fetch_and_transform_bootcamp_contentful_data()
+        for chunked_courses in chunked_queryset(recent_courses):
+            for course in chunked_courses:
+                yield {
+                    'uuid': course.uuid,
+                    'key': course.key,
+                    'title': course.title,
+                    'short_description': course.short_description,
+                    'full_description': (
+                        aggregate_contentful_data(contentful_data, str(course.uuid)) or
+                        course.full_description
+                    ),
+                }
+
     def get_course_key(self, course_run_key):
         """
         Get course key for the given `course_run_key`.
