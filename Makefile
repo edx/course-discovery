@@ -4,8 +4,7 @@ TOX := tox
 
 .PHONY: accept clean clean_static check_keywords detect_changed_source_translations extract_translations \
 	help html_coverage migrate open-devstack production-requirements pull_translations quality requirements.js \
-	requirements.python requirements start-devstack static stop-devstack test docs static.dev static.watch \
-	install_transifex_client
+	requirements.python requirements start-devstack static stop-devstack test docs static.dev static.watch
 
 include .ci/docker.mk
 
@@ -96,24 +95,13 @@ extract_translations: ## Extract strings to be translated, outputting .po and .m
 	cd course_discovery && PYTHONPATH="..:${PYTHONPATH}" i18n_tool dummy
 	cd course_discovery && PYTHONPATH="..:${PYTHONPATH}" django-admin compilemessages
 
-# This Make target should not be removed since it is relied on by a Jenkins job (`edx-internal/tools-edx-jenkins/translation-jobs.yml`), using `ecommerce-scripts/transifex`.
-ifeq ($(OPENEDX_ATLAS_PULL),)
-pull_translations: ## Pull translations from Transifex
-	tx pull -a -f -t --mode reviewed --minimum-perc=1
-else
-# Experimental: OEP-58 Pulls translations using atlas
-pull_translations:
+pull_translations: ## pull translations from edx/openedx-translations via atlas (OEP-58)
 	find course_discovery/conf/locale -mindepth 1 -maxdepth 1 -type d -exec rm -r {} \;
-	atlas pull $(OPENEDX_ATLAS_ARGS) translations/course-discovery/course_discovery/conf/locale:course_discovery/conf/locale
+	atlas pull $(ATLAS_OPTIONS) translations/course-discovery/course_discovery/conf/locale:course_discovery/conf/locale
 	python manage.py compilemessages
 
 	@echo "Translations have been pulled via Atlas and compiled."
 	@echo "'make static' or 'make static.dev' is required to update the js i18n files."
-endif
-
-# This Make target should not be removed since it is relied on by a Jenkins job (`edx-internal/tools-edx-jenkins/translation-jobs.yml`), using `ecommerce-scripts/transifex`.
-push_translations: ## Push source translation files (.po) to Transifex
-	tx push -s
 
 start-devstack: ## Run a local development copy of the server
 	docker compose up
@@ -137,8 +125,3 @@ docs:
 
 check_keywords: ## Scan the Django models in all installed apps in this project for restricted field names
 	python manage.py check_reserved_keywords --override_file db_keyword_overrides.yml
-
-
-install_transifex_client: ## Install the Transifex client
-	curl -o- https://raw.githubusercontent.com/transifex/cli/master/install.sh | bash
-	git checkout -- LICENSE README.md
