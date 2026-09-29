@@ -50,9 +50,7 @@ class TaxonomyIntegrationTests(TestCase, LMSAPIClientMixin):
     """
     Validate integration of taxonomy_support and metadata providers.
     """
-    @mock.patch('course_discovery.apps.taxonomy_support.providers.fetch_and_transform_bootcamp_contentful_data',
-                return_value={})
-    def test_validate_course_metadata(self, _contentful_data):
+    def test_validate_course_metadata(self):
         """
         Validate that there are no integration issues.
         """

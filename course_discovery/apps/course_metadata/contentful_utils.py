@@ -12,11 +12,9 @@ logger = logging.getLogger(__name__)
 
 def get_contentful_cache_key(content_type):
     """
-    Cache key for either bootcamp or degree data from Contentful.
+    Cache key for degree data from Contentful.
     """
-    if content_type == settings.BOOTCAMP_CONTENTFUL_CONTENT_TYPE:
-        return 'contentful_bootcamp_data_key'
-    elif content_type == settings.DEGREE_CONTENTFUL_CONTENT_TYPE:
+    if content_type == settings.DEGREE_CONTENTFUL_CONTENT_TYPE:
         return 'contentful_degree_data_key'
     else:
         return None
@@ -198,29 +196,6 @@ def get_about_the_program_module(about_the_program_module):
     }
 
 
-def get_blurb_module(blurb_module):
-    """
-    Given a Contentful blurb module, extracts related data and returns them in the form of a dict.
-    """
-    blurb_1_heading = blurb_module.blurb_heading
-    blurb_1_body = rich_text_to_plain_text(blurb_module.blurb_body)
-
-    return {
-        'heading': blurb_1_heading,
-        'body': blurb_1_body
-    }
-
-
-def get_bootcamp_curriculum_module(bootcamp_curriculum_module):
-    """
-    Given a Contentful bootcamp curriculum module, extracts related data and returns both dict and faqs.
-    """
-    bootcamp_curriculum_heading = rich_text_to_plain_text(bootcamp_curriculum_module.subheading)
-    bootcamp_curriculum_faqs = get_faq_module(bootcamp_curriculum_module.items)
-
-    return {'heading': bootcamp_curriculum_heading}, bootcamp_curriculum_faqs
-
-
 def get_faq_module(faq_module):
     """
     Given a Contentful faq module, extracts related data and returns them in the form of a dict.
@@ -234,19 +209,6 @@ def get_faq_module(faq_module):
             'answer': faq_answer,
         })
     return faq_items
-
-
-def get_partnership_module(partnership_module):
-    """
-    Given a Contentful partnership module, extracts related data and returns them in the form of a dict.
-    """
-    partnership_heading_text = rich_text_to_plain_text(partnership_module.heading_text)
-    partnership_body_text = rich_text_to_plain_text(partnership_module.body_text)
-
-    return {
-        'heading_text': partnership_heading_text,
-        'body_text': partnership_body_text
-    }
 
 
 def get_featured_products_module(featured_products_module):
@@ -283,79 +245,6 @@ def get_placement_about_section_module(placement_about_section_module):
         'heading': placement_about_section_heading,
         'body_text': placement_about_section_body_text
     }
-
-
-def fetch_and_transform_bootcamp_contentful_data():
-    """
-    Transforms incoming bootcamp data from contentful to algolia-usable form.
-
-    Each Contentful entry has seo, hero and modules list.
-    Each rich text content field has been transformed into plain text using `rich_text_to_plain_text`.
-    """
-    contentful_bootcamp_page_entries = get_data_from_contentful(settings.BOOTCAMP_CONTENTFUL_CONTENT_TYPE)
-    transformed_bootcamp_data = {}
-    for bootcamp_entry in contentful_bootcamp_page_entries:
-        product_uuid = bootcamp_entry.uuid
-        excluded_from_search = getattr(bootcamp_entry, 'excluded_from_search', False)
-        excluded_from_seo = getattr(bootcamp_entry, 'excluded_from_seo', False)
-        page_title = bootcamp_entry.seo.page_title
-        subheading = bootcamp_entry.hero.subheading
-        hero_text_list = rich_text_to_plain_text(bootcamp_entry.hero.text_list)
-
-        transformed_bootcamp_data[product_uuid] = {
-            'page_title': page_title,
-            'excluded_from_search': excluded_from_search,
-            'excluded_from_seo': excluded_from_seo,
-            'subheading': subheading,
-            'hero_text_list': hero_text_list,
-        }
-
-        module_list = get_modules_list(bootcamp_entry)
-
-        if 'aboutTheProgramModule' in module_list:
-            about_the_program = get_about_the_program_module(
-                bootcamp_entry.modules[module_list.index('aboutTheProgramModule')]
-            )
-            transformed_bootcamp_data[product_uuid].update(
-                {'about_the_program': about_the_program}
-            )
-
-        if 'blurbModule' in module_list:
-            blurb_indexes = [i for i, x in enumerate(module_list) if x == 'blurbModule']
-            blurb_1 = get_blurb_module(bootcamp_entry.modules[blurb_indexes[0]])
-            transformed_bootcamp_data[product_uuid].update(
-                {'blurb_1': blurb_1}
-            )
-            if len(blurb_indexes) == 2:
-                blurb_2 = get_blurb_module(bootcamp_entry.modules[blurb_indexes[1]])
-                transformed_bootcamp_data[product_uuid].update(
-                    {'blurb_2': blurb_2}
-                )
-
-        faq_items = []
-        if 'bootCampCurriculumModule' in module_list:
-            bootcamp_curriculum_module, bootcamp_curriculum_faqs = get_bootcamp_curriculum_module(
-                bootcamp_entry.modules[module_list.index('bootCampCurriculumModule')]
-            )
-            faq_items += bootcamp_curriculum_faqs
-            transformed_bootcamp_data[product_uuid].update(
-                {'bootcamp_curriculum': bootcamp_curriculum_module}
-            )
-
-        if 'partnershipModule' in module_list:
-            partnership_module = get_partnership_module(bootcamp_entry.modules[module_list.index('partnershipModule')])
-            transformed_bootcamp_data[product_uuid].update(
-                {'partnerships': partnership_module}
-            )
-
-        if 'faqModule' in module_list:
-            faq_module = get_faq_module(bootcamp_entry.modules[module_list.index('faqModule')].faqs)
-            faq_items += faq_module
-            transformed_bootcamp_data[product_uuid].update(
-                {'faq_items': faq_items}
-            )
-
-    return transformed_bootcamp_data
 
 
 def aggregate_contentful_data(data, product_uuid):

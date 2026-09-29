@@ -25,7 +25,7 @@ from course_discovery.apps.core.api_client.lms import LMSAPIClient
 from course_discovery.apps.core.models import Partner
 from course_discovery.apps.course_metadata.choices import CourseRunStatus
 from course_discovery.apps.course_metadata.contentful_utils import (
-    aggregate_contentful_data, fetch_and_transform_bootcamp_contentful_data, fetch_and_transform_degree_contentful_data
+    aggregate_contentful_data, fetch_and_transform_degree_contentful_data
 )
 from course_discovery.apps.course_metadata.models import Course, CourseRun, Organization, Program
 
@@ -41,15 +41,12 @@ class DiscoveryCourseMetadataProvider(CourseMetadataProvider):
         Get list of courses matching the given course UUIDs and return them in the form of a dict.
         """
         courses = Course.everything.filter(uuid__in=course_ids).distinct()
-        contentful_data = fetch_and_transform_bootcamp_contentful_data()
         return [{
             'uuid': course.uuid,
             'key': course.key,
             'title': course.title,
             'short_description': course.short_description,
-            'full_description': (
-                aggregate_contentful_data(contentful_data, str(course.uuid)) or course.full_description
-            ),
+            'full_description': course.full_description,
         } for course in courses]
 
     @staticmethod
@@ -58,7 +55,6 @@ class DiscoveryCourseMetadataProvider(CourseMetadataProvider):
         Get iterator for all the courses (excluding drafts).
         """
         all_courses = Course.objects.all()
-        contentful_data = fetch_and_transform_bootcamp_contentful_data()
         for chunked_courses in chunked_queryset(all_courses):
             for course in chunked_courses:
                 yield {
@@ -66,10 +62,7 @@ class DiscoveryCourseMetadataProvider(CourseMetadataProvider):
                     'key': course.key,
                     'title': course.title,
                     'short_description': course.short_description,
-                    'full_description': (
-                        aggregate_contentful_data(contentful_data, str(course.uuid)) or
-                        course.full_description
-                    ),
+                    'full_description': course.full_description,
                 }
 
     def get_course_key(self, course_run_key):
