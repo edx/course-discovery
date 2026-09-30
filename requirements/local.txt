@@ -402,7 +402,7 @@ drf-yasg==1.21.15
     # via
     #   -r requirements/test.txt
     #   edx-api-doc-tools
-edx-analytics-data-api-client==0.18.3
+edx-analytics-data-api-client==0.19.0
     # via -r requirements/test.txt
 edx-api-doc-tools==3.0.0
     # via -r requirements/test.txt
