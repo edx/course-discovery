@@ -36,13 +36,11 @@ class DiscoveryCourseMetadataProvider(CourseMetadataProvider):
     """
 
     @staticmethod
-    def get_courses(course_ids):  # lint-amnesty, pylint: disable=arguments-differ
+    def _course_to_dict(course, contentful_data):
         """
-        Get list of courses matching the given course UUIDs and return them in the form of a dict.
+        Build the taxonomy-facing dict representation of a single `Course` instance.
         """
-        courses = Course.everything.filter(uuid__in=course_ids).distinct()
-        contentful_data = fetch_and_transform_bootcamp_contentful_data()
-        return [{
+        return {
             'uuid': course.uuid,
             'key': course.key,
             'title': course.title,
@@ -50,47 +48,44 @@ class DiscoveryCourseMetadataProvider(CourseMetadataProvider):
             'full_description': (
                 aggregate_contentful_data(contentful_data, str(course.uuid)) or course.full_description
             ),
-        } for course in courses]
+        }
+
+    @staticmethod
+    def _courses_from_queryset(queryset):
+        """
+        Get iterator of course dicts for an already-filtered `Course` queryset, in chunks.
+        """
+        contentful_data = fetch_and_transform_bootcamp_contentful_data()
+        for chunked_courses in chunked_queryset(queryset):
+            for course in chunked_courses:
+                yield DiscoveryCourseMetadataProvider._course_to_dict(course, contentful_data)
+
+    @staticmethod
+    def get_courses(course_ids):  # lint-amnesty, pylint: disable=arguments-differ
+        """
+        Get list of courses matching the given course UUIDs and return them in the form of a dict.
+        """
+        courses = Course.everything.filter(uuid__in=course_ids).distinct()
+        contentful_data = fetch_and_transform_bootcamp_contentful_data()
+        return [
+            DiscoveryCourseMetadataProvider._course_to_dict(course, contentful_data) for course in courses
+        ]
 
     @staticmethod
     def get_all_courses():  # lint-amnesty, pylint: disable=arguments-differ
         """
         Get iterator for all the courses (excluding drafts).
         """
-        all_courses = Course.objects.all()
-        contentful_data = fetch_and_transform_bootcamp_contentful_data()
-        for chunked_courses in chunked_queryset(all_courses):
-            for course in chunked_courses:
-                yield {
-                    'uuid': course.uuid,
-                    'key': course.key,
-                    'title': course.title,
-                    'short_description': course.short_description,
-                    'full_description': (
-                        aggregate_contentful_data(contentful_data, str(course.uuid)) or
-                        course.full_description
-                    ),
-                }
+        return DiscoveryCourseMetadataProvider._courses_from_queryset(Course.objects.all())
 
     @staticmethod
     def get_recently_created_courses(created_after):  # lint-amnesty, pylint: disable=arguments-differ
         """
         Get iterator for courses created after the given timestamp (excluding drafts).
         """
-        recent_courses = Course.objects.filter(created__gte=created_after)
-        contentful_data = fetch_and_transform_bootcamp_contentful_data()
-        for chunked_courses in chunked_queryset(recent_courses):
-            for course in chunked_courses:
-                yield {
-                    'uuid': course.uuid,
-                    'key': course.key,
-                    'title': course.title,
-                    'short_description': course.short_description,
-                    'full_description': (
-                        aggregate_contentful_data(contentful_data, str(course.uuid)) or
-                        course.full_description
-                    ),
-                }
+        return DiscoveryCourseMetadataProvider._courses_from_queryset(
+            Course.objects.filter(created__gte=created_after)
+        )
 
     def get_course_key(self, course_run_key):
         """
