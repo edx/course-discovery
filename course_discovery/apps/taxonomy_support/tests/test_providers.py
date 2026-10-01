@@ -204,3 +204,34 @@ class DiscoveryCourseMetadataProviderTests(TestCase):
         assert old_course.key not in result_keys
         # self.course was created in setUp(), "now" -- also expected to be included.
         assert self.course.key in result_keys
+
+    @mock.patch('course_discovery.apps.taxonomy_support.providers.fetch_and_transform_bootcamp_contentful_data',
+                return_value={})
+    def test_get_all_and_recently_created_courses_query_count(self, _contentful_data):
+        """
+        Guard against a query-count regression in the shared `_courses_from_queryset`/
+        `_course_to_dict` helpers introduced to de-duplicate `get_all_courses` and
+        `get_recently_created_courses`: materializing either generator for a small, single-chunk
+        course set should cost a small, roughly-constant number of queries (not one per course --
+        that's the N+1 regression this guards against), regardless of how many courses exist.
+
+        The baseline is 5, not 1: `chunked_queryset` (edx_django_utils.db) issues two `exists()`
+        checks, one `values_list()[chunk_size - 1]` slice (which raises IndexError and gets
+        caught, since our course count is well under its 2000-row chunk size), and one
+        `.last()`, on top of the one query that actually fetches the chunk's rows -- all inherent
+        to that helper for any single-chunk result, not specific to our course count. A
+        `threshold` is used (rather than an exact match) so this doesn't break on a harmless
+        future change to that helper's internals while still catching a real per-course query
+        regression, which would scale with course count rather than add a fixed few queries.
+        """
+        CourseFactory.create_batch(2)  # plus self.course from setUp(), 3 courses total
+
+        with self.assertNumQueries(5, threshold=2):
+            all_courses = list(self.course_metadata_provider.get_all_courses())
+        assert len(all_courses) == 3
+
+        with self.assertNumQueries(5, threshold=2):
+            recent_courses = list(
+                self.course_metadata_provider.get_recently_created_courses(created_after=now() - timedelta(days=7))
+            )
+        assert len(recent_courses) == 3
