@@ -10,6 +10,7 @@ import pytest
 import pytz
 import responses
 from django.conf import settings
+from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models.functions import Lower
 from django.db.models.query import Prefetch
@@ -2761,6 +2762,13 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
     @responses.activate
     @override_settings(USE_API_CACHING=True)
     def test_recommendations(self):
+        # This test's second assertNumQueries block assumes the identical first request already
+        # warmed whatever makes the repeat request cheap. That assumption only holds with a clean
+        # cache -- Django's test framework resets the DB between tests but not LocMemCache, so
+        # residual state from an unrelated test running earlier in the same worker process can
+        # make this fail intermittently depending on test/shard ordering. Start from a known-clean
+        # cache so this test's result doesn't depend on what ran before it.
+        cache.clear()
         courses_sharing_program = CourseFactory.create_batch(2)
         ProgramFactory(courses=[self.course, *courses_sharing_program])
         geography_subject = SubjectFactory(name='geography')
