@@ -1,5 +1,6 @@
 import csv
 import datetime
+import logging
 from io import StringIO
 from unittest import mock
 from urllib.parse import urlencode
@@ -20,6 +21,7 @@ from rest_framework.reverse import reverse
 from testfixtures import LogCapture
 from waffle.testutils import override_switch
 
+from course_discovery.apps.api.cache import CompressedCacheResponse
 from course_discovery.apps.api.v1.exceptions import EditableAndQUnsupported
 from course_discovery.apps.api.v1.tests.test_views.mixins import APITestCase, OAuth2Mixin, SerializationMixin
 from course_discovery.apps.api.v1.views.courses import CourseViewSet
@@ -2775,15 +2777,48 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
             run = CourseRunFactory(course=course, status=CourseRunStatus.Published)
             SeatFactory(course_run=run)
 
-        with self.assertNumQueries(19, threshold=3):
-            url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
-            response = self.client.get(url)
-            assert response.status_code == 200
+        # TEMPORARY DIAGNOSTIC, see edx/course-discovery#77: this test is intermittently flaky in
+        # CI in a way that hasn't been locally reproducible despite extensive attempts. A prior
+        # diagnostic round (post_save/post_delete receivers on every course_metadata model) ran
+        # live in CI and caught the failure WITHOUT ever firing -- ruling out the "something writes
+        # to a course_metadata model between the two calls, bumping ApiTimestampKeyBit" theory.
+        # The captured failure also showed all 19 queries re-executed verbatim on the second call
+        # (not a handful of extra ones), i.e. a *complete* cache miss, not a partial one.
+        #
+        # This round instruments `CompressedCacheResponse.process_cache_response` directly to
+        # observe, for each of the two calls: the exact cache key computed, and whether that key
+        # already has an entry in cache *before* the real caching logic runs. This distinguishes
+        # between the two remaining explanations: (a) the second call computes a *different* key
+        # than the first (something non-deterministic in the key construction, e.g. the Waffle-flag
+        # existence check or `RetrieveSqlQueryKeyBit`'s compiled SQL text), or (b) the key is
+        # identical both times but the entry written by call 1 is gone by call 2 (eviction, or the
+        # write never actually happened, e.g. because `compressed_cache.*` waffle flag made
+        # `use_page_cache` False). Revert once the actual culprit is found.
+        real_process_cache_response = CompressedCacheResponse.process_cache_response
 
-        with self.assertNumQueries(0, threshold=3):
-            url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
-            response = self.client.get(url)
-            assert response.status_code == 200
+        def _diagnostic_process_cache_response(self, view_instance, view_method, request, args, kwargs):
+            key = self.calculate_key(
+                view_instance=view_instance, view_method=view_method, request=request, args=args, kwargs=kwargs,
+            )
+            pre_existing = self.cache.get(key)
+            logging.getLogger(__name__).error(
+                'DIAGNOSTIC (course-discovery#77): process_cache_response key=%s pre_existing_entry=%s',
+                key, pre_existing is not None,
+            )
+            return real_process_cache_response(self, view_instance, view_method, request, args, kwargs)
+
+        with mock.patch.object(
+            CompressedCacheResponse, 'process_cache_response', _diagnostic_process_cache_response,
+        ):
+            with self.assertNumQueries(19, threshold=3):
+                url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
+                response = self.client.get(url)
+                assert response.status_code == 200
+
+            with self.assertNumQueries(0, threshold=3):
+                url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
+                response = self.client.get(url)
+                assert response.status_code == 200
 
 
 @pytest.mark.usefixtures('django_cache')
