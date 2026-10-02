@@ -1,7 +1,6 @@
 import csv
 import datetime
 import logging
-import traceback
 from io import StringIO
 from unittest import mock
 from urllib.parse import urlencode
@@ -11,18 +10,18 @@ import ddt
 import pytest
 import pytz
 import responses
-from django.apps import apps as django_apps
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models.functions import Lower
 from django.db.models.query import Prefetch
-from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
+from django.db.models.signals import m2m_changed, pre_save
 from django.test import override_settings
 from edx_toggles.toggles.testutils import override_waffle_switch
 from rest_framework.reverse import reverse
 from testfixtures import LogCapture
 from waffle.testutils import override_switch
 
+from course_discovery.apps.api.cache import CompressedCacheResponse
 from course_discovery.apps.api.v1.exceptions import EditableAndQUnsupported
 from course_discovery.apps.api.v1.tests.test_views.mixins import APITestCase, OAuth2Mixin, SerializationMixin
 from course_discovery.apps.api.v1.views.courses import CourseViewSet
@@ -2779,33 +2778,38 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
             SeatFactory(course_run=run)
 
         # TEMPORARY DIAGNOSTIC, see edx/course-discovery#77: this test is intermittently flaky in
-        # CI in a way that hasn't been locally reproducible despite extensive attempts. The
-        # `course_recommendations` view's cache key depends on a single global timestamp
-        # (`ApiTimestampKeyBit`) that's bumped by post_save/post_delete on *any* course_metadata
-        # model. If something writes to one of those models between the two calls below, the
-        # second call's cache key changes and it misses instead of hitting -- which would exactly
-        # reproduce the observed "19 != 0 queries" failure. These receivers log a full stack trace
-        # the moment that happens, to catch it live in CI since it won't reproduce locally. Revert
-        # once the actual culprit (if any) is found.
-        def _log_unexpected_course_metadata_write(sender, **kwargs):
-            logging.getLogger(__name__).error(
-                'DIAGNOSTIC (course-discovery#77): %s post_save/post_delete fired between the '
-                'two course_recommendations calls in test_recommendations. This would bump '
-                'ApiTimestampKeyBit and explain a cache miss on the second call. Stack:\n%s',
-                sender, ''.join(traceback.format_stack())
-            )
+        # CI in a way that hasn't been locally reproducible despite extensive attempts. A prior
+        # diagnostic round (post_save/post_delete receivers on every course_metadata model) ran
+        # live in CI and caught the failure WITHOUT ever firing -- ruling out the "something writes
+        # to a course_metadata model between the two calls, bumping ApiTimestampKeyBit" theory.
+        # The captured failure also showed all 19 queries re-executed verbatim on the second call
+        # (not a handful of extra ones), i.e. a *complete* cache miss, not a partial one.
+        #
+        # This round instruments `CompressedCacheResponse.process_cache_response` directly to
+        # observe, for each of the two calls: the exact cache key computed, and whether that key
+        # already has an entry in cache *before* the real caching logic runs. This distinguishes
+        # between the two remaining explanations: (a) the second call computes a *different* key
+        # than the first (something non-deterministic in the key construction, e.g. the Waffle-flag
+        # existence check or `RetrieveSqlQueryKeyBit`'s compiled SQL text), or (b) the key is
+        # identical both times but the entry written by call 1 is gone by call 2 (eviction, or the
+        # write never actually happened, e.g. because `compressed_cache.*` waffle flag made
+        # `use_page_cache` False). Revert once the actual culprit is found.
+        real_process_cache_response = CompressedCacheResponse.process_cache_response
 
-        course_metadata_models = django_apps.get_app_config('course_metadata').get_models()
-        for model in course_metadata_models:
-            post_save.connect(
-                _log_unexpected_course_metadata_write, sender=model, weak=False,
-                dispatch_uid='diagnostic_77_post_save',
+        def _diagnostic_process_cache_response(self, view_instance, view_method, request, args, kwargs):
+            key = self.calculate_key(
+                view_instance=view_instance, view_method=view_method, request=request, args=args, kwargs=kwargs,
             )
-            post_delete.connect(
-                _log_unexpected_course_metadata_write, sender=model, weak=False,
-                dispatch_uid='diagnostic_77_post_delete',
+            pre_existing = self.cache.get(key)
+            logging.getLogger(__name__).error(
+                'DIAGNOSTIC (course-discovery#77): process_cache_response key=%s pre_existing_entry=%s',
+                key, pre_existing is not None,
             )
-        try:
+            return real_process_cache_response(self, view_instance, view_method, request, args, kwargs)
+
+        with mock.patch.object(
+            CompressedCacheResponse, 'process_cache_response', _diagnostic_process_cache_response,
+        ):
             with self.assertNumQueries(19, threshold=3):
                 url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
                 response = self.client.get(url)
@@ -2815,10 +2819,6 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
                 url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
                 response = self.client.get(url)
                 assert response.status_code == 200
-        finally:
-            for model in course_metadata_models:
-                post_save.disconnect(sender=model, dispatch_uid='diagnostic_77_post_save')
-                post_delete.disconnect(sender=model, dispatch_uid='diagnostic_77_post_delete')
 
 
 @pytest.mark.usefixtures('django_cache')
