@@ -13,6 +13,9 @@ settings.
 For a more detailed explanation of the implementation and thinking behind this provider can be found at
 https://openedx.atlassian.net/wiki/spaces/SOL/pages/1814922129/Platform+Agnostic+Implementation+of+Taxonomy+Application
 """
+from datetime import datetime
+from typing import Iterator
+
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from edx_django_utils.db import chunked_queryset
@@ -61,25 +64,25 @@ class DiscoveryCourseMetadataProvider(CourseMetadataProvider):
                 yield DiscoveryCourseMetadataProvider._course_to_dict(course, contentful_data)
 
     @staticmethod
-    def get_courses(course_ids):  # lint-amnesty, pylint: disable=arguments-differ
+    def get_courses(course_ids: list[str]) -> list[dict]:  # lint-amnesty, pylint: disable=arguments-differ
         """
         Get list of courses matching the given course UUIDs and return them in the form of a dict.
         """
-        courses = Course.everything.filter(uuid__in=course_ids).distinct()
-        contentful_data = fetch_and_transform_bootcamp_contentful_data()
-        return [
-            DiscoveryCourseMetadataProvider._course_to_dict(course, contentful_data) for course in courses
-        ]
+        return list(
+            DiscoveryCourseMetadataProvider._courses_from_queryset(
+                Course.everything.filter(uuid__in=course_ids).distinct(),
+            ),
+        )
 
     @staticmethod
-    def get_all_courses():  # lint-amnesty, pylint: disable=arguments-differ
+    def get_all_courses() -> Iterator[dict]:  # lint-amnesty, pylint: disable=arguments-differ
         """
         Get iterator for all the courses (excluding drafts).
         """
         return DiscoveryCourseMetadataProvider._courses_from_queryset(Course.objects.all())
 
     @staticmethod
-    def get_recently_created_courses(created_after):  # lint-amnesty, pylint: disable=arguments-differ
+    def get_recently_created_courses(created_after: datetime) -> Iterator[dict]:  # lint-amnesty, pylint: disable=arguments-differ
         """
         Get iterator for courses created after the given timestamp (excluding drafts).
         """
