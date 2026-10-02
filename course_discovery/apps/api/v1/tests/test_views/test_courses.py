@@ -1,5 +1,7 @@
 import csv
 import datetime
+import logging
+import traceback
 from io import StringIO
 from unittest import mock
 from urllib.parse import urlencode
@@ -9,11 +11,12 @@ import ddt
 import pytest
 import pytz
 import responses
+from django.apps import apps as django_apps
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models.functions import Lower
 from django.db.models.query import Prefetch
-from django.db.models.signals import m2m_changed, pre_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.test import override_settings
 from edx_toggles.toggles.testutils import override_waffle_switch
 from rest_framework.reverse import reverse
@@ -2775,15 +2778,47 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
             run = CourseRunFactory(course=course, status=CourseRunStatus.Published)
             SeatFactory(course_run=run)
 
-        with self.assertNumQueries(19, threshold=3):
-            url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
-            response = self.client.get(url)
-            assert response.status_code == 200
+        # TEMPORARY DIAGNOSTIC, see edx/course-discovery#77: this test is intermittently flaky in
+        # CI in a way that hasn't been locally reproducible despite extensive attempts. The
+        # `course_recommendations` view's cache key depends on a single global timestamp
+        # (`ApiTimestampKeyBit`) that's bumped by post_save/post_delete on *any* course_metadata
+        # model. If something writes to one of those models between the two calls below, the
+        # second call's cache key changes and it misses instead of hitting -- which would exactly
+        # reproduce the observed "19 != 0 queries" failure. These receivers log a full stack trace
+        # the moment that happens, to catch it live in CI since it won't reproduce locally. Revert
+        # once the actual culprit (if any) is found.
+        def _log_unexpected_course_metadata_write(sender, **kwargs):
+            logging.getLogger(__name__).error(
+                'DIAGNOSTIC (course-discovery#77): %s post_save/post_delete fired between the '
+                'two course_recommendations calls in test_recommendations. This would bump '
+                'ApiTimestampKeyBit and explain a cache miss on the second call. Stack:\n%s',
+                sender, ''.join(traceback.format_stack())
+            )
 
-        with self.assertNumQueries(0, threshold=3):
-            url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
-            response = self.client.get(url)
-            assert response.status_code == 200
+        course_metadata_models = django_apps.get_app_config('course_metadata').get_models()
+        for model in course_metadata_models:
+            post_save.connect(
+                _log_unexpected_course_metadata_write, sender=model, weak=False,
+                dispatch_uid='diagnostic_77_post_save',
+            )
+            post_delete.connect(
+                _log_unexpected_course_metadata_write, sender=model, weak=False,
+                dispatch_uid='diagnostic_77_post_delete',
+            )
+        try:
+            with self.assertNumQueries(19, threshold=3):
+                url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
+                response = self.client.get(url)
+                assert response.status_code == 200
+
+            with self.assertNumQueries(0, threshold=3):
+                url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
+                response = self.client.get(url)
+                assert response.status_code == 200
+        finally:
+            for model in course_metadata_models:
+                post_save.disconnect(sender=model, dispatch_uid='diagnostic_77_post_save')
+                post_delete.disconnect(sender=model, dispatch_uid='diagnostic_77_post_delete')
 
 
 @pytest.mark.usefixtures('django_cache')
