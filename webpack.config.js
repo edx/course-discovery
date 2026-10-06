@@ -48,27 +48,6 @@ module.exports = {
                 use: loaders
             },
             {
-                test: /\.woff2?$/,
-                // Inline small woff files and output them below font
-                use: [{
-                    loader: 'url-loader',
-                    options: {
-                        name: 'font/[name]-[hash].[ext]',
-                        limit: 5000,
-                        mimetype: 'application/font-woff'
-                    }
-                }]
-            },
-            {
-                test: /\.(ttf|eot|svg)$/,
-                use: [{
-                    loader: 'file-loader',
-                    options: {
-                        name: 'font/[name]-[hash].[ext]'
-                    }
-                }]
-            },
-            {
                 test: require.resolve('datatables.net'),
                 use: 'imports-loader?define=>false'
             },
