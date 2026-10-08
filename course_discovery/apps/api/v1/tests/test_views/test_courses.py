@@ -16,10 +16,13 @@ from django.db.models.query import Prefetch
 from django.db.models.signals import m2m_changed, pre_save
 from django.test import override_settings
 from edx_toggles.toggles.testutils import override_waffle_switch
+from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.reverse import reverse
 from testfixtures import LogCapture
+from waffle import get_waffle_flag_model  # lint-amnesty, pylint: disable=invalid-django-waffle-import
 from waffle.testutils import override_switch
 
+from course_discovery.apps.api.cache import CompressedCacheResponse
 from course_discovery.apps.api.v1.exceptions import EditableAndQUnsupported
 from course_discovery.apps.api.v1.tests.test_views.mixins import APITestCase, OAuth2Mixin, SerializationMixin
 from course_discovery.apps.api.v1.views.courses import CourseViewSet
@@ -2775,15 +2778,28 @@ class CourseViewSetTests(SerializationMixin, ElasticsearchTestMixin, OAuth2Mixin
             run = CourseRunFactory(course=course, status=CourseRunStatus.Published)
             SeatFactory(course_run=run)
 
-        with self.assertNumQueries(19, threshold=3):
-            url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
-            response = self.client.get(url)
-            assert response.status_code == 200
+        # Pin down the two things that can make this view's cache key or hit/miss outcome vary
+        # between the two calls below for reasons unrelated to caching itself (see
+        # CompressedCacheResponse.process_cache_response): a Waffle flag that can disable caching
+        # outright, and the cache key computation itself.
+        get_waffle_flag_model().objects.filter(
+            name='compressed_cache.CourseRecommendationViewSet.retrieve'
+        ).delete()
 
-        with self.assertNumQueries(0, threshold=3):
-            url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
-            response = self.client.get(url)
-            assert response.status_code == 200
+        url = reverse('api:v1:course_recommendations-detail', kwargs={'key': self.course.key})
+        with mock.patch.object(CompressedCacheResponse, 'calculate_key', return_value='test-recommendations-key'):
+            with mock.patch.object(
+                RetrieveModelMixin, 'retrieve', autospec=True, side_effect=RetrieveModelMixin.retrieve,
+            ) as mock_retrieve:
+                with self.assertNumQueries(19, threshold=3):
+                    response = self.client.get(url)
+                    assert response.status_code == 200
+
+                response = self.client.get(url)
+                assert response.status_code == 200
+
+                # call_count == 1 means the second call was served from cache.
+                assert mock_retrieve.call_count == 1
 
 
 @pytest.mark.usefixtures('django_cache')
