@@ -4,6 +4,20 @@ on:
   pull_request:
 
 jobs:
+  frontend_assets:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install JavaScript dependencies
+        run: npm ci --omit=dev
+      - name: Build frontend assets
+        run: |
+          ./node_modules/.bin/bower install --allow-root --production
+          NODE_OPTIONS=--openssl-legacy-provider ./node_modules/.bin/webpack --config webpack.config.js --progress
+
   pytest:
     runs-on: ubuntu-22.04
 
