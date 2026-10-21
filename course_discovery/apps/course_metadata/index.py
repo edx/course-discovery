@@ -77,14 +77,16 @@ class EnglishProductIndex(BaseProductIndex):
 
     search_fields = (('product_title', 'title'), ('partner_names', 'partner'), 'partner_keys', 'product_source',
                      'primary_description', 'secondary_description', 'tertiary_description', 'tags',
-                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'))
+                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
+                     ('product_weeks_to_complete', 'weeks_to_complete'))
     facet_fields = (('availability_level', 'availability'), ('subject_names', 'subject'), ('levels', 'level'),
                     ('active_languages', 'language'), ('product_type', 'product'), ('program_types', 'program_type'),
                     ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
                     ('product_blocked_in', 'blocked_in'), 'subscription_eligible',
                     'subscription_prices', 'learning_type', 'learning_type_exp',
                     ('product_ai_languages', 'ai_languages'),
-                    ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'))
+                    ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
+                    ('product_weeks_to_complete', 'weeks_to_complete'))
     ranking_fields = ('availability_rank', ('product_recent_enrollment_count', 'recent_enrollment_count'),
                       ('product_value_per_click_usa', 'value_per_click_usa'),
                       ('product_value_per_click_international', 'value_per_click_international'),
@@ -116,14 +118,15 @@ class EnglishProductIndex(BaseProductIndex):
             'tags',
             'contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, '
             'contentful_fields.faq_items, contentful_fields.featured_products',
-            'b2c_subscription_inclusion'
+            'b2c_subscription_inclusion',
+            'weeks_to_complete'
         ],
         'attributesForFaceting': [
             'partner', 'availability', 'subject', 'level', 'language', 'product', 'program_type',
             'filterOnly(staff)', 'filterOnly(allowed_in)', 'filterOnly(blocked_in)', 'skills.skill',
             'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible', 'subscription_prices',
             'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
-            'ai_languages.transcription_languages', 'b2c_subscription_inclusion',
+            'ai_languages.transcription_languages', 'b2c_subscription_inclusion', 'weeks_to_complete'
         ],
         'customRanking': ['asc(availability_rank)', 'desc(recent_enrollment_count)']
     }
@@ -136,14 +139,16 @@ class SpanishProductIndex(BaseProductIndex):
 
     search_fields = (('product_title', 'title'), ('partner_names', 'partner'), 'partner_keys', 'product_source',
                      'primary_description', 'secondary_description', 'tertiary_description', 'tags',
-                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'))
+                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
+                     ('product_weeks_to_complete', 'weeks_to_complete'))
     facet_fields = (('availability_level', 'availability'), ('subject_names', 'subject'), ('levels', 'level'),
                     ('active_languages', 'language'), ('product_type', 'product'), ('program_types', 'program_type'),
                     ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
                     ('product_blocked_in', 'blocked_in'), 'subscription_eligible',
                     'subscription_prices', 'learning_type', 'learning_type_exp',
                     ('product_ai_languages', 'ai_languages'),
-                    ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'))
+                    ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
+                    ('product_weeks_to_complete', 'weeks_to_complete'))
     ranking_fields = ('availability_rank', ('product_recent_enrollment_count', 'recent_enrollment_count'),
                       ('product_value_per_click_usa', 'value_per_click_usa'),
                       ('product_value_per_click_international', 'value_per_click_international'),
@@ -177,14 +182,15 @@ class SpanishProductIndex(BaseProductIndex):
             'tags',
             'contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, '
             'contentful_fields.faq_items, contentful_fields.featured_products',
-            'b2c_subscription_inclusion'
+            'b2c_subscription_inclusion',
+            'weeks_to_complete'
         ],
         'attributesForFaceting': [
             'partner', 'availability', 'subject', 'level', 'language', 'product', 'program_type',
             'filterOnly(staff)', 'filterOnly(allowed_in)', 'filterOnly(blocked_in)',
             'skills.skill', 'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible',
             'subscription_prices', 'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
-            'ai_languages.transcription_languages', 'b2c_subscription_inclusion'
+            'ai_languages.transcription_languages', 'b2c_subscription_inclusion', 'weeks_to_complete',
         ],
         'customRanking': ['desc(promoted_in_spanish_index)', 'asc(availability_rank)', 'desc(recent_enrollment_count)']
     }
