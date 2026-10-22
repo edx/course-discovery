@@ -80,10 +80,11 @@ def delegate_attributes(cls):
 
     product_type_fields = ['product_type']
     search_fields = ['partner_names', 'partner_keys', 'product_title', 'product_source', 'primary_description',
-                     'secondary_description', 'tertiary_description', 'product_b2c_subscription_inclusion']
+                     'secondary_description', 'tertiary_description', 'product_b2c_subscription_inclusion',
+                     'product_weeks_to_complete']
     facet_fields = ['availability_level', 'subject_names', 'levels', 'active_languages', 'staff_slugs',
                     'product_allowed_in', 'product_blocked_in', 'learning_type', 'learning_type_exp',
-                    'product_ai_languages', 'product_b2c_subscription_inclusion']
+                    'product_ai_languages', 'product_b2c_subscription_inclusion', 'product_weeks_to_complete']
     ranking_fields = ['availability_rank', 'product_recent_enrollment_count', 'promoted_in_spanish_index',
                       'product_value_per_click_usa', 'product_value_per_click_international',
                       'product_value_per_lead_usa', 'product_value_per_lead_international']
@@ -543,7 +544,7 @@ class AlgoliaProxyProgram(Program, AlgoliaBasicModelFieldsMixin):
     @property
     def product_weeks_to_complete(self):
         # The field `weeks_to_complete` for Programs is now deprecated.
-        return None
+        return self.weeks_to_complete
 
     @property
     def product_min_effort(self):
