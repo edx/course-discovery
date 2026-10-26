@@ -2498,6 +2498,13 @@ class CourseRun(ManageHistoryMixin, DraftModelMixin, CachedMixin, TimeStampedMod
                 seats.append(seat)
         return seats
 
+    def first_enrollable_paid_seat(self):
+        """
+        Return the enrollable paid Seat with the earliest upgrade deadline, or None if there is none.
+        """
+        seats = sorted(self._enrollable_paid_seats(), key=self._upgrade_deadline_sort)
+        return seats[0] if seats else None
+
     def clean(self):
         # See https://stackoverflow.com/questions/47819247
         if self.enrollment_count is None:
