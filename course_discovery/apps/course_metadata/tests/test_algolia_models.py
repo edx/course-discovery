@@ -13,7 +13,7 @@ from conftest import TEST_DOMAIN
 from course_discovery.apps.core.models import Currency, Partner
 from course_discovery.apps.core.tests.factories import PartnerFactory, SiteFactory
 from course_discovery.apps.course_metadata.algolia_models import AlgoliaProxyCourse, AlgoliaProxyProgram
-from course_discovery.apps.course_metadata.choices import ExternalProductStatus, ProgramStatus
+from course_discovery.apps.course_metadata.choices import CourseRunPacing, ExternalProductStatus, ProgramStatus
 from course_discovery.apps.course_metadata.models import CourseRunStatus, CourseType, ProductValue, ProgramType
 from course_discovery.apps.course_metadata.tests.factories import (
     AdditionalMetadataFactory, CourseFactory, CourseRunFactory, CourseTypeFactory, DegreeAdditionalMetadataFactory,
@@ -616,6 +616,20 @@ class TestAlgoliaProxyCourse(TestAlgoliaProxyWithEdxPartner):
             'translation_languages': [],
             'transcription_languages': []
         }
+
+    @ddt.data(CourseRunPacing.Self, CourseRunPacing.Instructor)
+    def test_course_pacing_type(self, pacing_type):
+        course = self.create_current_upgradeable_course(pacing_type=pacing_type)
+        assert course.product_pacing_type == pacing_type
+
+    def test_course_list_price(self):
+        course = self.create_current_upgradeable_course()
+        assert course.product_list_price == 10
+
+    def test_course_pacing_type_and_list_price_no_advertised_run(self):
+        course = AlgoliaProxyCourseFactory(partner=self.__class__.edxPartner)
+        assert course.product_pacing_type is None
+        assert course.product_list_price is None
 
 
 @ddt.ddt
