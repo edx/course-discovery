@@ -78,7 +78,8 @@ class EnglishProductIndex(BaseProductIndex):
     search_fields = (('product_title', 'title'), ('partner_names', 'partner'), 'partner_keys', 'product_source',
                      'primary_description', 'secondary_description', 'tertiary_description', 'tags',
                      ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
-                     ('product_weeks_to_complete', 'weeks_to_complete'))
+                     ('product_weeks_to_complete', 'weeks_to_complete'),
+                     ('product_pacing_type', 'pacing_type'), ('product_list_price', 'listPrice'))
     facet_fields = (('availability_level', 'availability'), ('subject_names', 'subject'), ('levels', 'level'),
                     ('active_languages', 'language'), ('product_type', 'product'), ('program_types', 'program_type'),
                     ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
@@ -86,7 +87,8 @@ class EnglishProductIndex(BaseProductIndex):
                     'subscription_prices', 'learning_type', 'learning_type_exp',
                     ('product_ai_languages', 'ai_languages'),
                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
-                    ('product_weeks_to_complete', 'weeks_to_complete'))
+                    ('product_weeks_to_complete', 'weeks_to_complete'),
+                    ('product_pacing_type', 'pacing_type'), ('product_list_price', 'listPrice'))
     ranking_fields = ('availability_rank', ('product_recent_enrollment_count', 'recent_enrollment_count'),
                       ('product_value_per_click_usa', 'value_per_click_usa'),
                       ('product_value_per_click_international', 'value_per_click_international'),
@@ -101,7 +103,8 @@ class EnglishProductIndex(BaseProductIndex):
                      ('product_external_url', 'external_url'), 'active_run_key',
                      'active_run_start', 'active_run_type', 'owners', 'course_titles', 'tags',
                      'skills', 'contentful_fields', 'product_key', 'product_marketing_video_url',
-                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'))
+                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
+                     ('product_pacing_type', 'pacing_type'), ('product_list_price', 'listPrice'))
 
     # Algolia needs this
     object_id_field = (('custom_object_id', 'objectID'), )
@@ -119,14 +122,17 @@ class EnglishProductIndex(BaseProductIndex):
             'contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, '
             'contentful_fields.faq_items, contentful_fields.featured_products',
             'b2c_subscription_inclusion',
-            'weeks_to_complete'
+            'weeks_to_complete',
+            'pacing_type',
+            'listPrice'
         ],
         'attributesForFaceting': [
             'partner', 'availability', 'subject', 'level', 'language', 'product', 'program_type',
             'filterOnly(staff)', 'filterOnly(allowed_in)', 'filterOnly(blocked_in)', 'skills.skill',
             'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible', 'subscription_prices',
             'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
-            'ai_languages.transcription_languages', 'b2c_subscription_inclusion', 'weeks_to_complete'
+            'ai_languages.transcription_languages', 'b2c_subscription_inclusion', 'weeks_to_complete',
+            'pacing_type', 'listPrice'
         ],
         'customRanking': ['asc(availability_rank)', 'desc(recent_enrollment_count)']
     }
@@ -140,7 +146,8 @@ class SpanishProductIndex(BaseProductIndex):
     search_fields = (('product_title', 'title'), ('partner_names', 'partner'), 'partner_keys', 'product_source',
                      'primary_description', 'secondary_description', 'tertiary_description', 'tags',
                      ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
-                     ('product_weeks_to_complete', 'weeks_to_complete'))
+                     ('product_weeks_to_complete', 'weeks_to_complete'),
+                     ('product_pacing_type', 'pacing_type'), ('product_list_price', 'listPrice'))
     facet_fields = (('availability_level', 'availability'), ('subject_names', 'subject'), ('levels', 'level'),
                     ('active_languages', 'language'), ('product_type', 'product'), ('program_types', 'program_type'),
                     ('staff_slugs', 'staff'), ('product_allowed_in', 'allowed_in'),
@@ -148,7 +155,9 @@ class SpanishProductIndex(BaseProductIndex):
                     'subscription_prices', 'learning_type', 'learning_type_exp',
                     ('product_ai_languages', 'ai_languages'),
                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
-                    ('product_weeks_to_complete', 'weeks_to_complete'))
+                    ('product_weeks_to_complete', 'weeks_to_complete'),
+                    ('product_pacing_type', 'pacing_type'),
+                    ('product_list_price', 'listPrice'))
     ranking_fields = ('availability_rank', ('product_recent_enrollment_count', 'recent_enrollment_count'),
                       ('product_value_per_click_usa', 'value_per_click_usa'),
                       ('product_value_per_click_international', 'value_per_click_international'),
@@ -164,7 +173,9 @@ class SpanishProductIndex(BaseProductIndex):
                      ('product_external_url', 'external_url'), 'active_run_start',
                      'active_run_type', 'owners', 'course_titles', 'tags', 'skills',
                      'contentful_fields', 'product_key', 'product_marketing_video_url',
-                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'))
+                     ('product_b2c_subscription_inclusion', 'b2c_subscription_inclusion'),
+                     ('product_pacing_type', 'pacing_type'),
+                     ('product_list_price', 'listPrice'))
 
     # Algolia uses objectID as unique identifier. Can't use straight uuids because a program and a course could
     # have the same one, so we add 'course' or 'program' as a prefix
@@ -183,7 +194,9 @@ class SpanishProductIndex(BaseProductIndex):
             'contentful_fields.page_title, contentful_fields.subheading, contentful_fields.about_the_program, '
             'contentful_fields.faq_items, contentful_fields.featured_products',
             'b2c_subscription_inclusion',
-            'weeks_to_complete'
+            'weeks_to_complete',
+            'pacing_type',
+            'listPrice',
         ],
         'attributesForFaceting': [
             'partner', 'availability', 'subject', 'level', 'language', 'product', 'program_type',
@@ -191,6 +204,8 @@ class SpanishProductIndex(BaseProductIndex):
             'skills.skill', 'skills.category', 'skills.subcategory', 'tags', 'subscription_eligible',
             'subscription_prices', 'learning_type', 'learning_type_exp', 'ai_languages.translation_languages',
             'ai_languages.transcription_languages', 'b2c_subscription_inclusion', 'weeks_to_complete',
+            'pacing_type',
+            'listPrice',
         ],
         'customRanking': ['desc(promoted_in_spanish_index)', 'asc(availability_rank)', 'desc(recent_enrollment_count)']
     }
