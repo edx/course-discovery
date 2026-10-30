@@ -77,6 +77,16 @@ ALGOLIA = {
     'TAXONOMY_INDEX_NAME': '',
 }
 
+# Server-side credentials for the B2C catalog search proxy (see api/v1/views/search.py).
+# Only the search-only key may be configured here; never the admin/write key.
+# ALGOLIA_APPLICATION_ID = os.environ.get('ALGOLIA_APPLICATION_ID', '')
+# ALGOLIA_SEARCH_API_KEY = os.environ.get('ALGOLIA_SEARCH_API_KEY', '')
+# ALGOLIA_PRODUCT_INDEX_NAME = os.environ.get('ALGOLIA_PRODUCT_INDEX_NAME', 'product')
+
+ALGOLIA_APPLICATION_ID ='testing2MLYZ9WWU0'
+ALGOLIA_SEARCH_API_KEY ='63b85c1e6330cd66675d74945fa3bc0e' 
+ALGOLIA_PRODUCT_INDEX_NAME = 'product'
+
 PROJECT_APPS = [
     'course_discovery.apps.core',
     'course_discovery.apps.ietf_language_tags',
@@ -420,6 +430,8 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_THROTTLE_RATES': {
         'user': '200/hour',
+        'b2c_search_anon': '60/minute',
+        'b2c_search_user': '120/minute',
     },
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.openapi.AutoSchema'
 }

@@ -10,9 +10,10 @@ from django_elasticsearch_dsl_drf.filter_backends import DefaultOrderingFilterBa
 from elasticsearch_dsl.query import Q as ESDSLQ
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
 from course_discovery.apps.api import serializers
@@ -22,6 +23,7 @@ from course_discovery.apps.course_metadata.models import Person
 from course_discovery.apps.course_metadata.search_indexes import documents as search_documents
 from course_discovery.apps.course_metadata.search_indexes import serializers as search_indexes_serializers
 from course_discovery.apps.course_metadata.search_indexes.constants import LEARNER_PATHWAY_FEATURE_PARAM
+from course_discovery.apps.course_metadata.search_proxy import AlgoliaSearchProxyService
 from course_discovery.apps.edx_elasticsearch_dsl_extensions.backends import (
     AggregateDataFilterBackend, CatalogDataFilterBackend, MultiMatchSearchFilterBackend
 )
@@ -501,3 +503,36 @@ class TypeaheadSearchView(APIView):
         data = {'course_runs': course_runs, 'programs': programs}
         serializer = serializers.TypeaheadSearchSerializer(data)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class B2CSearchAnonRateThrottle(AnonRateThrottle):
+    scope = 'b2c_search_anon'
+
+
+class B2CSearchUserRateThrottle(UserRateThrottle):
+    scope = 'b2c_search_user'
+
+
+class B2CSearchProxyView(APIView):
+    """
+    Proxy for B2C catalog search. Browsers send queries here instead of calling Algolia.
+
+    POST accepts either a batch body ``{"requests": [...]}`` (the shape InstantSearch sends)
+    or a single query object. The response is ``{"results": [...]}`` with one raw Algolia
+    result per request. Every upstream query is scoped to ``b2c_subscription_inclusion:true``.
+    """
+    permission_classes = (AllowAny,)
+    throttle_classes = (B2CSearchAnonRateThrottle, B2CSearchUserRateThrottle)
+
+    def post(self, request):
+        body = request.data
+        if not isinstance(body, dict):
+            raise ValidationError('Request body must be a JSON object.')
+
+        if 'requests' in body:
+            requests_payload = body['requests']
+        else:
+            requests_payload = [body]
+
+        results = AlgoliaSearchProxyService().search(requests_payload)
+        return Response(results, status=status.HTTP_200_OK)

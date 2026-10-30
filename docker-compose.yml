@@ -57,6 +57,11 @@ services:
     environment:
       TEST_ELASTICSEARCH_URL: "http://es:9200"
       ENABLE_DJANGO_TOOLBAR: 1
+      # Algolia search-only credentials for the B2C search proxy. Set these in the host
+      # shell or an untracked .env file; never commit real keys here.
+      ALGOLIA_APPLICATION_ID: "${ALGOLIA_APPLICATION_ID:-}"
+      ALGOLIA_SEARCH_API_KEY: "${ALGOLIA_SEARCH_API_KEY:-}"
+      ALGOLIA_PRODUCT_INDEX_NAME: "${ALGOLIA_PRODUCT_INDEX_NAME:-product}"
     ports:
       - "18381:18381"
       - "8381:8381"
